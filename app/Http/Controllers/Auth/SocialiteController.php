@@ -76,6 +76,23 @@ class SocialiteController extends Controller
             $request->session()->put('coretax_url', $coretaxUrl);
         }
 
+        // E-Learning: jika database tidak bisa diakses, login Routind tetap berjalan
+        try {
+            $elearning = DB::connection('elearning_db')
+                ->table('users')
+                ->where('email', $user->email)
+                ->exists();
+        } catch (Exception $e) {
+            report($e);
+            $elearning = false;
+        }
+        $request->session()->put('elearning', $elearning);
+
+        if($elearning){
+            $elearningUrl = 'https://elearning.routind.com/token-login?token='.$token;
+            $request->session()->put('elearning_url', $elearningUrl);
+        }
+
         // setelah login redirect ke dashboard
         return redirect()->route('home');
     }

@@ -106,5 +106,21 @@
             </div>
         </div>
         @endif
+        @if(Session::get('elearning'))
+        <div class="col-lg-3 col-6">
+            <!-- small box -->
+            <div class="small-box bg-primary">
+                <div class="inner">
+                    <h3>E-Learning</h3>
+
+                    <p>Modul &amp; Materi</p>
+                </div>
+                <div class="icon">
+                    <i class="ion ion-ios-book"></i>
+                </div>
+                <a href="{{ Session::get('elearning_url')}}" target="_blank" class="small-box-footer">Launch <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        @endif
     </div>
 @endsection

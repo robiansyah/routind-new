@@ -74,15 +74,22 @@ class LoginController extends Controller
         $token = JWT::encode($payload, $key, 'HS256');
 
         $services = [
-            'exam'    => ['db' => 'second_db', 'url' => 'https://exam.routind.com/token-login'],
-            'coretax' => ['db' => 'coretax_db', 'url' => 'https://tax.routind.com/token-login'],
+            'exam'      => ['db' => 'second_db', 'url' => 'https://exam.routind.com/token-login'],
+            'coretax'   => ['db' => 'coretax_db', 'url' => 'https://tax.routind.com/token-login'],
+            'elearning' => ['db' => 'elearning_db', 'url' => 'https://elearning.routind.com/token-login'],
         ];
 
         foreach ($services as $key => $config) {
-            $exists = DB::connection($config['db'])
-                ->table('users')
-                ->where('email', $user->email)
-                ->exists();
+            // A service that cannot be reached must not block signing in to Routind.
+            try {
+                $exists = DB::connection($config['db'])
+                    ->table('users')
+                    ->where('email', $user->email)
+                    ->exists();
+            } catch (\Throwable $e) {
+                report($e);
+                $exists = false;
+            }
 
             $request->session()->put($key, $exists);
 
