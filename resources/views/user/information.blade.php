@@ -45,7 +45,7 @@
                 <!--end::Description-->
                 <div class="py-5 fs-6">
                     <!--begin::Badge-->
-                    <div class="badge badge-light-primary d-inline text-capitalize">{!! (auth()->user()->paket!=null && auth()->user()->end_date >= date('Y-m-d')) ? auth()->user()->paket.' User'.' [Masa Aktif : '.(Carbon\Carbon::now()->diffInDays(auth()->user()->end_date, false)+1).' Hari]' : 'Free User' !!}</div>
+                    <div class="badge badge-light-primary d-inline text-capitalize">{!! (auth()->user()->paket!=null && auth()->user()->end_date >= date('Y-m-d')) ? auth()->user()->paket.' User'.' [Masa Aktif : '.((int) Carbon\Carbon::now()->diffInDays(auth()->user()->end_date, false)+1).' Hari]' : 'Free User' !!}</div>
                     <!--begin::Badge-->
                     <!--begin::Details item-->
                     <div class="fw-bold mt-5">NPWP</div>
