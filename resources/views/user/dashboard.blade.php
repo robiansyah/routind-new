@@ -77,7 +77,7 @@
                 <!--begin::Body-->
                 <div class="card-body d-flex flex-column justify-content-between">
                     <!--begin::Title-->
-                    <h2 class="text-white fw-bold fs-1">E-Learning<br>Modul &amp; Materi</h2>
+                    <h2 class="text-white fw-bold fs-1">LMS<br>Modul &amp; Materi</h2>
                     <!--end::Title-->
                     <!--begin::Action-->
                     <div class="m-0">

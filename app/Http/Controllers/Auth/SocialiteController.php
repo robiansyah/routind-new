@@ -76,7 +76,7 @@ class SocialiteController extends Controller
             $request->session()->put('coretax_url', $coretaxUrl);
         }
 
-        // E-Learning: jika database tidak bisa diakses, login Routind tetap berjalan
+        // LMS: jika database tidak bisa diakses, login Routind tetap berjalan
         try {
             $elearning = DB::connection('elearning_db')
                 ->table('users')

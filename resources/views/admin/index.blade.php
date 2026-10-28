@@ -111,7 +111,7 @@
             <!-- small box -->
             <div class="small-box bg-primary">
                 <div class="inner">
-                    <h3>E-Learning</h3>
+                    <h3>LMS</h3>
 
                     <p>Modul &amp; Materi</p>
                 </div>
