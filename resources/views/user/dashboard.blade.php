@@ -71,7 +71,7 @@
             </div>
         </div>
         @endif
-        @if(Session::get('elearning'))
+        @if(Session::get('lms'))
         <div class="col-xl-4">
             <div class="card h-175px bgi-no-repeat bgi-size-contain card-xl-stretch mb-5 mb-xl-8" style="background-color: #31316A; background-position: right; background-image:url('/disc/assets/media/svg/misc/hijau-inn.png')">
                 <!--begin::Body-->
@@ -81,7 +81,7 @@
                     <!--end::Title-->
                     <!--begin::Action-->
                     <div class="m-0">
-                        <a href="{{ Session::get('elearning_url')}}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
+                        <a href="{{ Session::get('lms_url')}}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
                     </div>
                     <!--begin::Action-->
                 </div>

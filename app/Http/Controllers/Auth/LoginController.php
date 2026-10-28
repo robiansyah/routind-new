@@ -76,7 +76,7 @@ class LoginController extends Controller
         $services = [
             'exam'      => ['db' => 'second_db', 'url' => 'https://exam.routind.com/token-login'],
             'coretax'   => ['db' => 'coretax_db', 'url' => 'https://tax.routind.com/token-login'],
-            'elearning' => ['db' => 'elearning_db', 'url' => 'https://elearning.routind.com/token-login'],
+            'lms'       => ['db' => 'lms_db', 'url' => 'https://lms.routind.com/token-login'],
         ];
 
         foreach ($services as $key => $config) {

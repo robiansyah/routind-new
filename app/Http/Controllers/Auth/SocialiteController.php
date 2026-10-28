@@ -78,19 +78,19 @@ class SocialiteController extends Controller
 
         // LMS: jika database tidak bisa diakses, login Routind tetap berjalan
         try {
-            $elearning = DB::connection('elearning_db')
+            $lms = DB::connection('lms_db')
                 ->table('users')
                 ->where('email', $user->email)
                 ->exists();
         } catch (Exception $e) {
             report($e);
-            $elearning = false;
+            $lms = false;
         }
-        $request->session()->put('elearning', $elearning);
+        $request->session()->put('lms', $lms);
 
-        if($elearning){
-            $elearningUrl = 'https://elearning.routind.com/token-login?token='.$token;
-            $request->session()->put('elearning_url', $elearningUrl);
+        if($lms){
+            $lmsUrl = 'https://lms.routind.com/token-login?token='.$token;
+            $request->session()->put('lms_url', $lmsUrl);
         }
 
         // setelah login redirect ke dashboard

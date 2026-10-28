@@ -103,13 +103,13 @@ return [
             ]) : [],
         ],
 
-        'elearning_db' => [
+        'lms_db' => [
             'driver' => 'mysql',
-            'host' => env('DB_ELEARNING_HOST', '127.0.0.1'),
-            'port' => env('DB_ELEARNING_PORT', '3306'),
-            'database' => env('DB_ELEARNING_DATABASE', 'forge'),
-            'username' => env('DB_ELEARNING_USERNAME', 'forge'),
-            'password' => env('DB_ELEARNING_PASSWORD', ''),
+            'host' => env('DB_LMS_HOST', '127.0.0.1'),
+            'port' => env('DB_LMS_PORT', '3306'),
+            'database' => env('DB_LMS_DATABASE', 'forge'),
+            'username' => env('DB_LMS_USERNAME', 'forge'),
+            'password' => env('DB_LMS_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',

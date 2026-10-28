@@ -652,9 +652,9 @@
                     <a href="{{ Session::get('exam_url')}}" target="_blank" class="menu-link px-5">Exam</a>
                 </div>
                 @endif
-                @if(Session::get('elearning'))
+                @if(Session::get('lms'))
                 <div class="menu-item px-5">
-                    <a href="{{ Session::get('elearning_url')}}" target="_blank" class="menu-link px-5">LMS</a>
+                    <a href="{{ Session::get('lms_url')}}" target="_blank" class="menu-link px-5">LMS</a>
                 </div>
                 @endif
                 <!--end::Menu item-->
