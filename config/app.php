@@ -125,6 +125,13 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
+    // Old keys still accepted for decryption, so rotating APP_KEY does not log everyone out.
+    'previous_keys' => [
+        ...array_filter(
+            explode(',', (string) env('APP_PREVIOUS_KEYS', ''))
+        ),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Maintenance Mode Driver
