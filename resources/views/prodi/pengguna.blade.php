@@ -46,9 +46,12 @@
                         <td>{{ $item->email }}</td>
                         <td>{{ $item->mobile_phone }}</td>
                         <td class="text-center">
-                            <a href="{{ route('prodi.pengguna.password', ['id'=>$item->id]) }}" onclick="return confirm('Apakah anda yakin akan mereset password akun ini?')" class="btn btn-sm btn-secondary" data-toggle="tooltip" data-placement="top" title="Reset Password">
+                            <form action="{{ route('prodi.pengguna.password', ['id'=>$item->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah anda yakin akan mereset password akun ini?')">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-secondary" data-toggle="tooltip" data-placement="top" title="Reset Password">
                                 <i class="fas fa-key"></i> Reset
-                            </a>
+                            </button>
+                            </form>
                         </td>
                     </tr>
                     @endforeach

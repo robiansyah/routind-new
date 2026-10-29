@@ -421,36 +421,28 @@ class Eform1770Controller extends Controller
         //file_laporan
         if(!empty($request->file_laporan)) {
             $laporan = $request->file('file_laporan');
-            $laporan_name = time().'.'.$laporan->getClientOriginalExtension();
-            $folder = 'uploads';
-            $laporan->move($folder,$laporan_name);
+            $laporan_name = EformFileController::store($laporan);
             $induk->file_laporan = $laporan_name;
         }
 
         //file_rekapitulasi
         if(!empty($request->file_rekapitulasi)) {
             $rekapitulasi = $request->file('file_rekapitulasi');
-            $rekapitulasi_name = time().'.'.$rekapitulasi->getClientOriginalExtension();
-            $folder = 'uploads';
-            $rekapitulasi->move($folder, $rekapitulasi_name);
+            $rekapitulasi_name = EformFileController::store($rekapitulasi);
             $induk->file_rekapitulasi = $rekapitulasi_name;
         }
 
         //file_bupot
         if(!empty($request->file_bupot)) {
             $bupot = $request->file('file_bupot');
-            $bupot_name = time().'.'.$bupot->getClientOriginalExtension();
-            $folder = 'uploads';
-            $bupot->move($folder, $bupot_name);
+            $bupot_name = EformFileController::store($bupot);
             $induk->file_bupot = $bupot_name;
         }
 
         //file_lainnya
         if(!empty($request->file_lainnya)) {
             $lainnya = $request->file('file_lainnya');
-            $lainnya_name = time().'.'.$lainnya->getClientOriginalExtension();
-            $folder = 'uploads';
-            $lainnya->move($folder, $lainnya_name);
+            $lainnya_name = EformFileController::store($lainnya);
             $induk->file_lainnya = $lainnya_name;
         }
 

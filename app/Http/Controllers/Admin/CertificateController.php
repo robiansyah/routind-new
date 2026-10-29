@@ -44,11 +44,11 @@ class CertificateController extends Controller
         $this->validate($request,[
             'name' => 'required',
             'position' => 'required',
-            'image' => 'required',
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
         ]);
 
         $image = $request->file('image');
-        $image_name = time().'_ttd.'.$image->getClientOriginalExtension();
+        $image_name = time().'_ttd.'.$image->guessExtension();
         $folder = 'img';
         $image->move($folder,$image_name);
 
@@ -81,6 +81,7 @@ class CertificateController extends Controller
     public function signUpdate(Request $request, $id)
     {
         $this->validate($request,[
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'name' => 'required',
             'position' => 'required',
         ]);
@@ -89,7 +90,7 @@ class CertificateController extends Controller
         if(!empty($request->image)){
             // menyimpan data file yang diupload
             $image = $request->file('image');
-            $image_name = time().'_ttd.'.$image->getClientOriginalExtension();
+            $image_name = time().'_ttd.'.$image->guessExtension();
             $folder = 'img';
             $image->move($folder,$image_name);
 
@@ -142,11 +143,11 @@ class CertificateController extends Controller
     {
         $this->validate($request,[
             'name' => 'required',
-            'image' => 'required',
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
         ]);
 
         $image = $request->file('image');
-        $image_name = time().'_ttd.'.$image->getClientOriginalExtension();
+        $image_name = time().'_ttd.'.$image->guessExtension();
         $folder = 'img';
         $image->move($folder,$image_name);
 
@@ -178,6 +179,7 @@ class CertificateController extends Controller
     public function designUpdate(Request $request, $id)
     {
         $this->validate($request,[
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'name' => 'required',
         ]);
 
@@ -185,7 +187,7 @@ class CertificateController extends Controller
         if(!empty($request->image)){
             // menyimpan data file yang diupload
             $image = $request->file('image');
-            $image_name = time().'_ttd.'.$image->getClientOriginalExtension();
+            $image_name = time().'_ttd.'.$image->guessExtension();
             $folder = 'img';
             $image->move($folder,$image_name);
 

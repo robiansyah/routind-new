@@ -151,6 +151,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/efile/{type}/{spt?}', [SptController::class, 'efile'])->name('pelajar.spt.efile');
     Route::post('/spt/dashboard/{type}', [SptController::class, 'dashboard'])->name('pelajar.spt.dashboard');
 
+    Route::get('/eform/{spt}/berkas/{field}', [\App\Http\Controllers\EformFileController::class, 'show'])->name('eform.file');
     Route::get('/eform', [EformController::class, 'index'])->name('pelajar.eform.index');
     Route::get('/eform/arsip', [EformController::class, 'index'])->name('pelajar.eform.arsip');
     Route::get('/eform/buat', [EformController::class, 'create'])->name('pelajar.eform.buat');
@@ -356,12 +357,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/pengguna', [AdminController::class, 'penggunaStore'])->name('admin.pengguna.store');
     Route::get('/admin/pengguna/{id}/edit', [AdminController::class, 'penggunaEdit'])->name('admin.pengguna.edit');
     Route::put('/admin/pengguna/{id}', [AdminController::class, 'penggunaUpdate'])->name('admin.pengguna.update');
-    Route::get('/admin/pengguna/{id}/paket', [AdminController::class, 'penggunaPaket'])->name('admin.pengguna.paket');
-    Route::get('/admin/pengguna/{id}/email', [AdminController::class, 'penggunaEmail'])->name('admin.pengguna.email');
-    Route::get('/admin/pengguna/{id}/password', [AdminController::class, 'penggunaPassword'])->name('admin.pengguna.password');
+    Route::post('/admin/pengguna/{id}/paket', [AdminController::class, 'penggunaPaket'])->name('admin.pengguna.paket');
+    Route::post('/admin/pengguna/{id}/email', [AdminController::class, 'penggunaEmail'])->name('admin.pengguna.email');
+    Route::post('/admin/pengguna/{id}/password', [AdminController::class, 'penggunaPassword'])->name('admin.pengguna.password');
     Route::delete('/admin/pengguna/{id}/destroy', [AdminController::class, 'penggunaDestroy'])->name('admin.pengguna.destroy');
     Route::post('/admin/pengguna/import', [AdminController::class, 'penggunaImport'])->name('admin.pengguna.import');
-    Route::get('/admin/approved/{id}', [AdminController::class, 'approved'])->name('admin.approved');
+    Route::post('/admin/approved/{id}', [AdminController::class, 'approved'])->name('admin.approved');
     Route::get('/admin/transaksi', [AdminController::class, 'transaction'])->name('admin.transaction');
     Route::get('/admin/registrasi', [AdminController::class, 'registration'])->name('admin.registration');
     Route::get('/admin/log', [AdminController::class, 'log'])->name('admin.log');
@@ -413,7 +414,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/prodi', [ProdiController::class, 'index'])->name('prodi.index');
     Route::get('/prodi/pengguna/{type}', [ProdiController::class, 'pengguna'])->name('prodi.pengguna');
-    Route::get('/prodi/pengguna/{id}/password', [ProdiController::class, 'penggunaPassword'])->name('prodi.pengguna.password');
+    Route::post('/prodi/pengguna/{id}/password', [ProdiController::class, 'penggunaPassword'])->name('prodi.pengguna.password');
     Route::get('/prodi/kelas', [ProdiController::class, 'kelas'])->name('prodi.kelas');
 
     Route::get('/afiliasi', [AffiliateController::class, 'index'])->name('affiliate.index');

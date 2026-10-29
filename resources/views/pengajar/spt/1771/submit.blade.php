@@ -42,19 +42,19 @@
                 </div>
                 @endif
             @endforeach
-            <a href="{!! ($induk->file_laporan!='') ? url('uploads/'.$induk->file_laporan) : '#' !!}" target="_blank">Laporan Keuangan</a>
+            <a href="{!! ($induk->file_laporan!='') ? route('eform.file', [$induk->spt_id, 'file_laporan']) : '#' !!}" target="_blank">Laporan Keuangan</a>
             <br>
-            <a href="{!! ($induk->file_rekapitulasi!='') ? url('uploads/'.$induk->file_rekapitulasi) : '#' !!}" target="_blank">Rekapitulasi Peredaran Bruto PP 23 Tahun 2018 dan/atau PP 55 Tahun 2022</a>
+            <a href="{!! ($induk->file_rekapitulasi!='') ? route('eform.file', [$induk->spt_id, 'file_rekapitulasi']) : '#' !!}" target="_blank">Rekapitulasi Peredaran Bruto PP 23 Tahun 2018 dan/atau PP 55 Tahun 2022</a>
             <br>
-            <a href="{!! ($induk->file_nominatif!='') ? url('uploads/'.$induk->file_nominatif) : '#' !!}" target="_blank">Daftar Nominatif Biaya Promosi dan/atau Biaya Entertainment</a>
+            <a href="{!! ($induk->file_nominatif!='') ? route('eform.file', [$induk->spt_id, 'file_nominatif']) : '#' !!}" target="_blank">Daftar Nominatif Biaya Promosi dan/atau Biaya Entertainment</a>
             <br>
-            <a href="{!! ($induk->file_but!='') ? url('uploads/'.$induk->file_but) : '#' !!}" target="_blank">Dokumen-dokumen Lampiran Khusus BUT</a>
+            <a href="{!! ($induk->file_but!='') ? route('eform.file', [$induk->spt_id, 'file_but']) : '#' !!}" target="_blank">Dokumen-dokumen Lampiran Khusus BUT</a>
             <br>
-            <a href="{!! ($induk->file_migas!='') ? url('uploads/'.$induk->file_migas) : '#' !!}" target="_blank">Dokumen-dokumen Lampiran Khusus WP Migas</a>
+            <a href="{!! ($induk->file_migas!='') ? route('eform.file', [$induk->spt_id, 'file_migas']) : '#' !!}" target="_blank">Dokumen-dokumen Lampiran Khusus WP Migas</a>
             <br>
-            <a href="{!! ($induk->file_perbandingan!='') ? url('uploads/'.$induk->file_perbandingan) : '#' !!}" target="_blank">Laporan Perbandingan Utang-Modal dan Laporan Utang Swasta Luar Negri</a>
+            <a href="{!! ($induk->file_perbandingan!='') ? route('eform.file', [$induk->spt_id, 'file_perbandingan']) : '#' !!}" target="_blank">Laporan Perbandingan Utang-Modal dan Laporan Utang Swasta Luar Negri</a>
             <br>
-            <a href="{!! ($induk->file_lainnya!='') ? url('uploads/'.$induk->file_lainnya) : '#' !!}" target="_blank">Dokumen Lampiran Lainnya</a>
+            <a href="{!! ($induk->file_lainnya!='') ? route('eform.file', [$induk->spt_id, 'file_lainnya']) : '#' !!}" target="_blank">Dokumen Lampiran Lainnya</a>
             @if($induk->kurang_bayar > 0)
             <table class="table table-bordered mt-4" id="setor">
                 <thead>

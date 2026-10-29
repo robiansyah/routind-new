@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use App\Models\User;
 use App\Models\Kelas;
 
@@ -54,11 +56,19 @@ class ProdiController extends Controller
 
     public function penggunaPassword(Request $request, $id)
     {
-        $user = User::findOrFail($id);
-        $user->password = Hash::make($user->mobile_phone);
+        // Only users of this prodi's own institution, and never an admin.
+        $institution = auth()->user()->institution_code;
+        abort_if(empty($institution), 403);
+
+        $user = User::where('institution_code', $institution)
+            ->whereDoesntHave('roles', fn ($query) => $query->where('roles.name', 'admin'))
+            ->findOrFail($id);
+
+        $password = Str::password(10, symbols: false);
+        $user->password = Hash::make($password);
         $user->save();
 
-        $request->session()->flash('alert-info', 'Password berhasil direset');
+        $request->session()->flash('alert-info', 'Password '.$user->email.' berhasil direset. Password baru: '.$password.' (sampaikan ke pengguna, hanya ditampilkan sekali)');
         return redirect()->back();
     }
 

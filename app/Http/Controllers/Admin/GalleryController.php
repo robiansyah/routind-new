@@ -48,13 +48,13 @@ class GalleryController extends Controller
         $this->validate($request,[
             'type' => 'required',
             'name' => 'required',
-            'image' => 'required',
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
         ]);
 
         $cek = Gallery::where('type', $request->type)->count();
         if($cek < 4){
             $image = $request->file('image');
-            $image_name = time().'.'.$image->getClientOriginalExtension();
+            $image_name = time().'.'.$image->guessExtension();
             $folder = 'galleries';
             $image->move($folder,$image_name);
 
@@ -102,6 +102,7 @@ class GalleryController extends Controller
     public function update(Request $request, $id)
     {
         $this->validate($request,[
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
 //            'type' => 'required',
             'name' => 'required',
         ]);
@@ -110,7 +111,7 @@ class GalleryController extends Controller
         if ($request->hasFile('image')) {
 
             $image = $request->file('image');
-            $image_name = time().'.'.$image->getClientOriginalExtension();
+            $image_name = time().'.'.$image->guessExtension();
             $folder = 'galleries';
             $image->move($folder,$image_name);
 

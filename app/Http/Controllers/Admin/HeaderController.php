@@ -45,13 +45,13 @@ class HeaderController extends Controller
     {
         $this->validate($request,[
             'name' => 'required',
-            'image' => 'required',
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'link' => 'required',
         ]);
 
         // menyimpan data file yang diupload
         $image = $request->file('image');
-        $image_name = time().'.'.$image->getClientOriginalExtension();
+        $image_name = time().'.'.$image->guessExtension();
         $folder = 'img';
         $image->move($folder,$image_name);
 
@@ -91,6 +91,7 @@ class HeaderController extends Controller
     public function update(Request $request, $id)
     {
         $this->validate($request,[
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'name' => 'required',
             'link' => 'required',
 //            'image' => 'required',
@@ -100,7 +101,7 @@ class HeaderController extends Controller
         if(!empty($request->image)){
             // menyimpan data file yang diupload
             $image = $request->file('image');
-            $image_name = time().'.'.$image->getClientOriginalExtension();
+            $image_name = time().'.'.$image->guessExtension();
             $folder = 'img';
             $image->move($folder,$image_name);
 

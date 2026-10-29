@@ -52,7 +52,7 @@ class EventController extends Controller
             'category_id' => 'required',
             'title' => 'required',
             'description' => 'required',
-            'image' => 'required',
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'price' => 'required',
             'location' => 'required',
             'status' => 'required',
@@ -68,7 +68,7 @@ class EventController extends Controller
 
         // menyimpan data file yang diupload
         $image = $request->file('image');
-        $image_name = time().'.'.$image->getClientOriginalExtension();
+        $image_name = time().'.'.$image->guessExtension();
         $folder = 'img';
         $image->move($folder,$image_name);
 
@@ -120,6 +120,7 @@ class EventController extends Controller
     public function update(Request $request, $id)
     {
         $this->validate($request,[
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'category_id' => 'required',
             'title' => 'required',
             'description' => 'required',
@@ -132,7 +133,7 @@ class EventController extends Controller
         if(!empty($request->image)){
             // menyimpan data file yang diupload
             $image = $request->file('image');
-            $image_name = time().'.'.$image->getClientOriginalExtension();
+            $image_name = time().'.'.$image->guessExtension();
             $folder = 'img';
             $image->move($folder,$image_name);
 
