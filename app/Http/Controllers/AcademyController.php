@@ -18,9 +18,6 @@ use App\Mail\ButtonEmail;
 use App\Mail\AcademyEmail;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
-//import Xendit
-use Xendit\Configuration;
-use Xendit\Invoice\InvoiceApi;
 use Illuminate\Support\Str;
 //Wablas
 use App\Traits\WablasTrait;
@@ -35,7 +32,6 @@ class AcademyController extends Controller
     protected $dokuService;
     public function __construct(DokuService $dokuService)
     {
-        Configuration::setXenditKey(config('xendit.API_KEY'));
         $this->dokuService = $dokuService;
     }
 
@@ -84,20 +80,6 @@ class AcademyController extends Controller
 
     }
 
-    public function eventDetail($slug)
-    {
-        $event = AcademyEvent::where('slug', $slug)->first();
-        if($event){
-        $last = AcademyEvent::orderBy('id', 'desc')->limit(3)->get();
-            return view('academy.event_detail',[
-                'event' => $event,
-                'last' => $last,
-            ]);
-        }else{
-            return route('academy');
-        }
-    }
-
     public function order()
     {
         return view('academy.order', [
@@ -132,26 +114,6 @@ class AcademyController extends Controller
         }
     }
 
-    public function eventCheckout($slug)
-    {
-        $event = AcademyEvent::where('slug', $slug)->first();
-
-        return view('academy.checkout',[
-            'event' => $event,
-//            'channels' => $this->tripayService->getPaymentChannels(),
-        ]);
-    }
-
-    public function eventCheckoutId($id)
-    {
-        $batch = AcademyBatch::findOrFail($id);
-
-        return view('academy.checkout_new',[
-            'batch' => $batch,
-//            'channels' => $this->tripayService->getPaymentChannels(),
-        ]);
-    }
-
     public function eventCheckoutNew(Request $request)
     {
         $this->validate($request,[
@@ -166,16 +128,6 @@ class AcademyController extends Controller
         ]);
     }
 
-    public function cost(Request $request)
-    {
-        $cost = $this->tripayService->getCost($request->code, $request->amount);
-        return response()->json([
-            'message'=>"success",
-            "code"=> ($cost) ? 1 : 0 ,
-            "data"=> $cost,
-        ]);
-    }
-
     public function discount(Request $request)
     {
         $code = $request->code;
@@ -187,161 +139,12 @@ class AcademyController extends Controller
         ]);
     }
 
-    public function checkout(Request $request)
-    {
-        $batch = AcademyBatch::findOrFail($request->batch_id);
-        if($batch->event->category->slug=='competition'){
-            $this->validate($request,[
-                'name' => 'required',
-                'mobile' => 'required',
-                'email' => 'required|email',
-                'institution' => 'required',
-                'code' => 'required',
-                'file' => 'required|file|mimes:pdf|max:2048',
-            ]);
-        }else{
-            $this->validate($request,[
-                'name' => 'required',
-                'mobile' => 'required',
-                'email' => 'required|email',
-                'institution' => 'required',
-                'code' => 'required'
-            ]);
-        }
-        $cek = AcademyPurchase::where([['email', $request->email], ['batch_id', $batch->id], ['status', 'PAID']])->first();
-        if($cek){
-            return response()->json(['success' => true, 'purchase_id' => $cek->id, 'button' => 'Cek Detail']);
-        }
-        $inv = IdGenerator::generate(['table' => 'academy_purchases','field'=>'invoice_code', 'length' => 13, 'reset_on_prefix_change'  => true, 'prefix' => 'EVENT-'.date('y')]);
-        $new = new AcademyPurchase;
-        $new->email = $request->email;
-        $new->name = $request->name;
-        $new->mobile_phone = $request->mobile;
-        $new->institution = $request->institution;
-        $new->batch_id = $batch->id;
-        if($batch->event->category->slug=='competition'){
-            $file = $request->file('file');
-            $filePath = $file->store('competitions', 'public');
-            $new->file = $filePath;
-        }
-        $new->save();
-        $diskon = 0;
-        $kode_diskon = '-';
-        if($batch->price > 0){
-            if(!empty($request->diskon_id)){
-                $discount = Discount::where([['id', $request->diskon_id], ['start_date', '<=', date('Y-m-d')], ['end_date', '>=', date('Y-m-d')]])->first();
-                if($discount){
-                    $kode_diskon = $discount->code;
-                    $diskon = ($discount->type=='rupiah') ? $discount->amount : $batch->price * $discount->amount / 100;
-                }else{
-                    $request->session()->flash('alert-error', 'Kode Diskon Tidak Berlaku');
-                    return redirect()->back();
-                }
-            }
-
-            $total = $batch->price-$diskon;
-            $admin = ($request->code=='QRIS') ? ($total*0.7/100)+750 : 5000;
-            if($diskon > 0){
-                $fees = array(['type'=>'Diskon', 'value'=>-$diskon],['type'=>'Biaya Transaksi', 'value'=>$admin]);
-            }else{
-                $fees = array(['type'=>'Biaya Transaksi', 'value'=>$admin]);
-            }
-
-            $apiInstance = new InvoiceApi();
-            //request create invoice
-            $create_invoice = new \Xendit\Invoice\CreateInvoiceRequest([
-                'external_id' => (string) Str::uuid(),
-                'customer' => [
-                    'given_names' => $request->name,
-                    'email' => $request->email,
-                    'mobile_number' => $request->mobile,
-                ],
-                'customer_notification_preference' => [
-                    'invoice_created' => ['email', 'whatsapp'],
-                    'invoice_reminder' => ['email', 'whatsapp'],
-                    'invoice_paid' => ['email', 'whatsapp'],
-                ],
-                'description' => 'Invoice pembayaran transaksi produk '.$batch->event->title.' - '.$batch->name.' untuk user '.$request->name,
-                'amount' => $total+$admin,
-                'items' => array([
-                    'name' => $batch->event->title,
-                    'price' => $batch->price,
-                    'quantity' => 1,
-                    'url' => route('event.new', $batch->event->slug),
-                ]),
-                'fees' => $fees,
-                'failure_redirect_url' => route('order.show', $new->id),
-                'success_redirect_url' => route('order.show', $new->id),
-                'payment_methods' => [$request->code]
-            ]);
-
-            try {
-
-                //create invoice
-                $invoice = $apiInstance->createInvoice($create_invoice);
-
-                $new->nett = $total;
-                $new->discount_code = $kode_diskon;
-                $new->discount_amount = $diskon;
-                $new->status = 'UNPAID';
-                $new->invoice_code = $inv;
-                $new->transaction_code = $invoice['external_id'];
-                $new->amount = $invoice['amount'];
-                $new->invoice_url = $invoice['invoice_url'];
-                $new->save();
-
-                $url = $invoice['invoice_url'];
-            } catch (\Xendit\XenditSdkException $e) {
-                return response()->json(['success' => false, 'message' => $e->getMessage()]);
-            }
-        }else{
-            $new->discount_code = $kode_diskon;
-            $new->discount_amount = $diskon;
-            $new->status = 'PAID';
-            $new->invoice_code = $inv;
-            $new->amount = 0;
-            $new->nett = 0;
-            $new->save();
-
-//            $subject = 'Pendaftaran Anda Berhasil';
-//            $message = 'Pendaftaran anda pada course '.$batch->event->title.' telah berhasil, silakan klik tombol dibawah ini untuk gabung ke grup pelatihan.';
-//            $link = $batch->link_group;
-//            $btn = 'Join Grup';
-//            Mail::to($new->email)->send(new ButtonEmail($subject, $message, $new->name, $link, $btn));
-
-            //kirim wa
-            $message = "[pesan otomatis]<br>Pendaftaran Anda Berhasil
-		    <br>Hai Kak ".$request->name."
-		    <br>Selamat! Kami senang untuk memberitahu Anda bahwa pendaftaran Anda pada course ".$batch->event->title." telah berhasil diverifikasi.
-            <br>Silakan save no ini terlebih dahulu agar link dapat diakses, kemudian klik link berikut ini untuk bergabung dengan grup WA
-            <br>".$batch->link_group;
-            $kumpulan_data = [];
-            $data['phone'] = $request->mobile;
-            $data['message'] = $message;
-            $data['secret'] = false;
-            $data['retry'] = false;
-            $data['isGroup'] = false;
-            array_push($kumpulan_data, $data);
-            WablasTrait::sendText($kumpulan_data);
-
-            $url = route('order.show', $new->id);
-
-        }
-
-        $button = ($batch->price > 0) ? 'Lakukan Pembayaran!' : 'Cek Pendaftaran!';
-
-        return response()->json(['success' => true, 'url' => $url, 'button' => $button]);
-
-
-    }
-
     public function eventCheckoutDoku($id)
     {
         $batch = AcademyBatch::findOrFail($id);
 
         return view('academy.checkout_doku',[
             'batch' => $batch,
-//            'channels' => $this->tripayService->getPaymentChannels(),
         ]);
     }
 

@@ -16,7 +16,6 @@ use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\FakturController;
 use App\Http\Controllers\PPh21Controller;
-use App\Http\Controllers\TripayCallbackController;
 use App\Http\Controllers\RuangKelasController;
 use App\Http\Controllers\AcademyController;
 use App\Http\Controllers\PrintController;
@@ -70,19 +69,14 @@ Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialiteCont
 Route::get('/reload-captcha', [CaptchaServiceController::class, 'reloadCaptcha'])->name('reload');
 
 Route::get('/approval', [HomeController::class, 'approval'])->name('approval');
-Route::post('/callback', [TripayCallbackController::class, 'handle']);
 
 Route::get('/academy', [AcademyController::class, 'index'])->name('academy');
 Route::get('/events/{category?}', [AcademyController::class, 'event'])->name('event');
 Route::get('/events/{slug}/detail', [AcademyController::class, 'eventNew'])->name('event.show');
 Route::get('/events/{slug}/new', [AcademyController::class, 'eventNew'])->name('event.new');
-Route::get('/events/{slug}/checkout', [AcademyController::class, 'eventCheckout'])->name('event.checkout');
-//Route::get('/events/{id}/payment', [AcademyController::class, 'eventCheckoutId'])->name('event.payment.id');
 Route::get('/events/{id}/payment', [AcademyController::class, 'eventCheckoutDoku'])->name('event.payment.id');
 Route::post('/events/payment', [AcademyController::class, 'eventCheckoutNew'])->name('event.payment');
 Route::post('/discount', [AcademyController::class, 'discount'])->name('event.discount');
-Route::post('/cost', [AcademyController::class, 'cost'])->name('event.cost');
-//Route::post('/checkout', [AcademyController::class, 'checkout'])->name('event.checkout.store');
 Route::post('/checkout', [AcademyController::class, 'checkoutDoku'])->name('event.checkout.store');
 Route::get('/order', [AcademyController::class, 'order'])->name('order.index');
 Route::post('/order', [AcademyController::class, 'orderCheck'])->name('order.check');
@@ -96,12 +90,10 @@ Route::get('/coursecertificate/{code}', [AcademyController::class, 'certificate'
 Route::get('/brevetcertificate/{code}', [PrintController::class, 'brevet'])->name('brevet.certificate');
 Route::get('/brevetblank/{code}', [PrintController::class, 'brevet_blank'])->name('blank.certificate');
 
-Route::get('/xendit', [AcademyController::class, 'xendit'])->name('xendit');
 Route::get('/alumni', [AcademyController::class, 'alumni'])->name('alumni');
 
 Route::get('/terms', [AcademyController::class, 'terms'])->name('terms');
 
-Route::post('/coXendit', [AcademyController::class, 'coXendit'])->name('coXendit');
 Route::get('/doku/callback', [AcademyController::class, 'dokuReturn'])->name('doku.callback.web');
 
 //Route::any('{catchall}', [App\Http\Controllers\PageController::class, 'notfound'])->where('catchall', '.*');
@@ -121,15 +113,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pengaturan', [UserController::class, 'setting'])->name('pelajar.setting');
     Route::get('/pengaturan/kelas', [UserController::class, 'kelas'])->name('pelajar.setting.kelas');
     Route::post('/pengaturan/{type}', [UserController::class, 'updateSetting'])->name('pelajar.setting.update');
-    Route::get('/paket', [UserController::class, 'paket'])->name('pelajar.paket');
-    Route::get('/paket/{type}/checkout', [UserController::class, 'paketCheckout'])->name('pelajar.paket.checkout');
-    Route::post('/paket/checkout', [UserController::class, 'checkout'])->name('pelajar.checkout');
-    Route::post('/paket/discount', [UserController::class, 'discount'])->name('pelajar.discount');
-    Route::post('/paket/cost', [UserController::class, 'cost'])->name('pelajar.cost');
 
-    Route::get('/invoice', [UserController::class, 'invoice'])->name('pelajar.invoice');
-    Route::get('/invoice/{code}', [UserController::class, 'invoiceDetail'])->name('pelajar.invoice.detail');
-    Route::get('/invoice/{code}/batal', [UserController::class, 'invoiceCancel'])->name('pelajar.invoice.cancel');
     Route::get('/bayar', [UserController::class, 'pay'])->name('pelajar.bayar');
     Route::get('/lapor', [UserController::class, 'report'])->name('pelajar.lapor');
     Route::get('/pralapor', [UserController::class, 'praReport'])->name('pelajar.pralapor');

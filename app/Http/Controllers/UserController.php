@@ -18,20 +18,15 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use MongoDB\Driver\Session;
 use Terbilang;
 use DB;
-use App\Services\TripayService;
 use Haruncpi\LaravelIdGenerator\IdGenerator;
 
-use Xendit\Configuration;
-use Xendit\Invoice\InvoiceApi;
-use Xendit\Invoice\InvoiceFee;
 use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
-    public function __construct(TripayService $tripayService)
+    public function __construct()
     {
         $this->middleware(['auth','verified']);
-        Configuration::setXenditKey(config('xendit.API_KEY'));
     }
 
     public function index()
@@ -204,149 +199,6 @@ class UserController extends Controller
                 return redirect()->back();
             }
         }
-    }
-
-    public function paket(){
-        return view('user.paket');
-    }
-
-    public function paketCheckout($type)
-    {
-        return view('user.paket_checkout',([
-            'type' => $type,
-        ]));
-    }
-
-    public function checkout(Request $request)
-    {
-        $this->validate($request,[
-            'paket' => 'required',
-        ]);
-        $price = ($request->paket=='platinum') ? '75000' : '50000';
-        $diskon = 0;
-        $kode_diskon = '-';
-        if(!empty($request->diskon_id)){
-            $discount = Discount::where([['id', $request->diskon_id], ['start_date', '<=', date('Y-m-d')], ['end_date', '>=', date('Y-m-d')]])->first();
-            if($discount){
-                $kode_diskon = $discount->code;
-                $diskon = ($discount->type=='rupiah') ? $discount->amount : (($request->paket=='platinum') ? $price * $discount->amount / 100  : $price * ($discount->amount/2) / 100 );
-            }else{
-                $request->session()->flash('alert-error', 'Kode Diskon Tidak Berlaku');
-                return redirect()->back();
-            }
-        }
-        $inv = IdGenerator::generate(['table' => 'purchases','field'=>'invoice_code', 'length' => 11, 'reset_on_prefix_change'  => true, 'prefix' => 'INV-'.date('y')]);
-        $total = $price-$diskon;
-        if($diskon > 0){
-            $fees = array(['type'=>'Diskon', 'value'=>-$diskon],['type'=>'Biaya Transaksi', 'value'=>4500]);
-        }else{
-            $fees = array(['type'=>'Biaya Transaksi', 'value'=>4500]);
-        }
-
-        $apiInstance = new InvoiceApi();
-        //request create invoice
-        $create_invoice = new \Xendit\Invoice\CreateInvoiceRequest([
-            'external_id' => (string) Str::uuid(),
-            'customer' => [
-                'given_names' => auth()->user()->name,
-                'email' => auth()->user()->email,
-                'mobile_number' => auth()->user()->mobile_phone,
-            ],
-            'customer_notification_preference' => [
-                'invoice_created' => ['email', 'whatsapp'],
-                'invoice_reminder' => ['email', 'whatsapp'],
-                'invoice_paid' => ['email', 'whatsapp'],
-            ],
-            'description' => 'Invoice pembayaran transaksi produk '.$request->paket.' untuk user '.auth()->user()->name,
-            'amount' => $total+4500,
-            'items' => array([
-                'name' => $request->paket,
-                'price' => $price,
-                'quantity' => 1,
-            ]),
-            'fees' => $fees,
-            'failure_redirect_url' => route('pelajar.invoice'),
-            'success_redirect_url' => route('pelajar.invoice'),
-        ]);
-
-        try {
-
-            //create invoice
-            $invoice = $apiInstance->createInvoice($create_invoice);
-
-            $purchase = new Purchase;
-            $purchase->user_id = auth()->user()->id;
-            $purchase->paket = $request->paket;
-            $purchase->discount_code = $kode_diskon;
-            $purchase->discount_amount = $diskon;
-            $purchase->status = 'UNPAID';
-            $purchase->transaction_code = $invoice['external_id'];
-            $purchase->invoice_code = $inv;
-            $purchase->amount = $invoice['amount'];
-            $purchase->invoice_url = $invoice['invoice_url'];
-            $purchase->save();
-
-            $url = $invoice['invoice_url'];
-            return response()->json(['success' => true, 'url' => $url]);
-        } catch (\Xendit\XenditSdkException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
-        }
-    }
-
-    public function cost(Request $request)
-    {
-        $cost = $this->tripayService->getCost($request->code, $request->amount);
-        return response()->json([
-            'message'=>"success",
-            "code"=> ($cost) ? 1 : 0 ,
-            "data"=> $cost,
-        ]);
-    }
-
-    public function discount(Request $request)
-    {
-        $code = $request->code;
-        $discount = Discount::where([['code', $code], ['start_date', '<=', date('Y-m-d')], ['end_date', '>=', date('Y-m-d')]])->first();
-        return response()->json([
-            "status"=>"success",
-            "code"=> ($discount) ? 1 : 0,
-            "data"=> ($discount)? : array(),
-        ]);
-    }
-
-    public function invoice(){
-        $purchase = Purchase::where('user_id', auth()->user()->id)->orderBy('id', 'desc')->get();
-        return view('user.invoice', [
-            'purchase' => $purchase,
-        ]);
-    }
-
-    public function invoiceDetail(Request $request, $code)
-    {
-        $purchase = Purchase::where([['user_id', auth()->user()->id], ['invoice_code', $code]])->first();
-        if(!$purchase){
-            $request->session()->flash('alert-error', 'Transaksi tidak ditemukan');
-            return redirect()->back();
-        }
-        $transaction = $this->tripayService->detailTransaction($purchase->transaction_code);
-        return view('user.invoice_detail', [
-            'purchase' => $purchase,
-            'transaction' => $transaction,
-        ]);
-    }
-
-    public function invoiceCancel(Request $request, $code)
-    {
-        $purchase = Purchase::where([['user_id', auth()->user()->id], ['invoice_code', $code]])->first();
-        if(!$purchase){
-            $request->session()->flash('alert-error', 'Transaksi tidak ditemukan');
-            return redirect()->back();
-        }
-        $purchase->update(['status' => 'FAILED']);
-
-        $request->session()->flash('alert-success', 'Transaksi Berhasil Dibatalkan');
-        return redirect()->back();
-
     }
 
     public function report()

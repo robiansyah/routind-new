@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -130,13 +131,40 @@ class DokuService
     }
 
     /**
-     * Verify DOKU callback signature (optional)
+     * Whether a payment notification really comes from DOKU.
+     *
+     * DOKU signs notifications the same way we sign requests to it: HMAC-SHA256 over
+     * Client-Id, Request-Id, Request-Timestamp, Request-Target (our notification path)
+     * and a SHA-256 digest of the raw body, keyed with our secret key.
      */
-    public function verifyCallback($request)
+    public function verifyCallback(Request $request): bool
     {
-        // Implementation depends on DOKU's callback signature verification
-        // This is a placeholder for signature verification logic
-        return true;
+        $clientId = (string) $request->header('Client-Id');
+        $requestId = (string) $request->header('Request-Id');
+        $timestamp = (string) $request->header('Request-Timestamp');
+        $signature = (string) $request->header('Signature');
+
+        if ($clientId === '' || $requestId === '' || $timestamp === '' || $signature === ''
+            || empty($this->clientId) || empty($this->secretKey)) {
+            return false;
+        }
+
+        if (! hash_equals((string) $this->clientId, $clientId)) {
+            return false;
+        }
+
+        $digest = base64_encode(hash('sha256', $request->getContent(), true));
+        $target = parse_url($request->getRequestUri(), PHP_URL_PATH);
+
+        $componentSignature = "Client-Id:".$clientId."\n".
+            "Request-Id:".$requestId."\n".
+            "Request-Timestamp:".$timestamp."\n".
+            "Request-Target:".$target."\n".
+            "Digest:".$digest;
+
+        $expected = 'HMACSHA256='.base64_encode(hash_hmac('sha256', $componentSignature, $this->secretKey, true));
+
+        return hash_equals($expected, $signature);
     }
 
     /**

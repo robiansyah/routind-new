@@ -66,7 +66,6 @@
 
                         <!--begin::Action-->
                         <div class="d-flex flex-column flex-sm-row d-grid gap-2">
-                            <a href="{{ route('pelajar.paket') }}" class="btn bg-white btn-color-gray-800 flex-shrink-0 me-lg-2">Beli Paket</a>
                             <a href="{{ route('pelajar.profil') }}" class="btn btn-primary flex-shrink-0" style="background: rgba(255, 255, 255, 0.2)">Edit Profil</a>
                         </div>
                         <!--end::Action-->
