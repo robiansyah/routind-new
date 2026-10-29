@@ -49,4 +49,10 @@ return [
         'sandbox' => env('DOKU_SANDBOX', true),
     ],
 
+    // Single sign-on to Exam, Coretax and LMS. Generate keys with `php artisan sso:keygen`.
+    'routind_sso' => [
+        'private_key' => env('ROUTIND_SSO_PRIVATE_KEY'),
+        'issuer' => env('ROUTIND_SSO_ISSUER', 'https://routind.com'),
+    ],
+
 ];

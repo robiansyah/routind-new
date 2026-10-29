@@ -6,6 +6,7 @@ use App\Models\User;
 use Firebase\JWT\JWT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -88,14 +89,23 @@ class ServiceLaunch
      */
     public function launchUrl(User $user, string $service): string
     {
+        $privateKey = config('services.routind_sso.private_key');
+
+        // Signed with Routind's own Ed25519 private key. The satellite apps only hold the
+        // public key, so a leak in any of them cannot be used to forge logins.
+        abort_if(blank($privateKey), 503, 'SSO belum dikonfigurasi (ROUTIND_SSO_PRIVATE_KEY).');
+
         $issuedAt = time();
 
         $token = JWT::encode([
-            'iss' => config('app.url'),
+            'iss' => config('services.routind_sso.issuer'),
+            'aud' => $service,
             'sub' => $user->email,
             'iat' => $issuedAt,
+            'nbf' => $issuedAt,
             'exp' => $issuedAt + self::TOKEN_TTL,
-        ], config('app.key'), 'HS256');
+            'jti' => (string) Str::uuid(),
+        ], $privateKey, 'EdDSA');
 
         return self::SERVICES[$service]['url'].'?'.http_build_query(['token' => $token]);
     }
