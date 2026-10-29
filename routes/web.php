@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Auth\ServiceLaunchController;
+use App\Services\ServiceLaunch;
 use App\Http\Controllers\CaptchaServiceController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SptController;
@@ -106,6 +108,10 @@ Route::get('/doku/callback', [AcademyController::class, 'dokuReturn'])->name('do
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
+    Route::get('/launch/{service}', ServiceLaunchController::class)
+        ->whereIn('service', array_keys(ServiceLaunch::SERVICES))
+        ->middleware(['verified', 'throttle:30,1'])
+        ->name('service.launch');
     Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
     Route::get('/informasi', [UserController::class, 'index'])->name('pelajar.index');
     Route::get('/profil', [UserController::class, 'profile'])->name('pelajar.profil');

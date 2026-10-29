@@ -73,7 +73,7 @@
                 <div class="icon">
                     <i class="ion ion-pie-graph"></i>
                 </div>
-                <a href="{{ Session::get('coretax_url')}}" target="_blank" class="small-box-footer">Launch <i class="fas fa-arrow-circle-right"></i></a>
+                <a href="{{ route('service.launch', 'coretax') }}" target="_blank" class="small-box-footer">Launch <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
         <div class="col-lg-3 col-6">
@@ -102,7 +102,7 @@
                 <div class="icon">
                     <i class="ion ion-person-add"></i>
                 </div>
-                <a href="{{ Session::get('exam_url')}}" target="_blank" class="small-box-footer">Launch <i class="fas fa-arrow-circle-right"></i></a>
+                <a href="{{ route('service.launch', 'exam') }}" target="_blank" class="small-box-footer">Launch <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
         @endif
@@ -118,7 +118,7 @@
                 <div class="icon">
                     <i class="ion ion-ios-book"></i>
                 </div>
-                <a href="{{ Session::get('lms_url')}}" target="_blank" class="small-box-footer">Launch <i class="fas fa-arrow-circle-right"></i></a>
+                <a href="{{ route('service.launch', 'lms') }}" target="_blank" class="small-box-footer">Launch <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
         @endif

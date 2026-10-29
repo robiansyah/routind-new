@@ -8,9 +8,7 @@ use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Firebase\JWT\JWT;
-use App\Models\User;
-use DB;
+use App\Services\ServiceLaunch;
 
 class LoginController extends Controller
 {
@@ -62,41 +60,8 @@ class LoginController extends Controller
     {
         $request->session()->regenerate();
 
-        $key = config('app.key');
-        $user = Auth::user();
-        $payload = [
-            'iss' => config('app.url'),
-            'sub' => $user->email,
-            'iat' => time(),
-            'exp' => time() + 3600 // 1 hour expiration
-        ];
-
-        $token = JWT::encode($payload, $key, 'HS256');
-
-        $services = [
-            'exam'      => ['db' => 'second_db', 'url' => 'https://exam.routind.com/token-login'],
-            'coretax'   => ['db' => 'coretax_db', 'url' => 'https://tax.routind.com/token-login'],
-            'lms'       => ['db' => 'lms_db', 'url' => 'https://lms.routind.com/token-login'],
-        ];
-
-        foreach ($services as $key => $config) {
-            // A service that cannot be reached must not block signing in to Routind.
-            try {
-                $exists = DB::connection($config['db'])
-                    ->table('users')
-                    ->where('email', $user->email)
-                    ->exists();
-            } catch (\Throwable $e) {
-                report($e);
-                $exists = false;
-            }
-
-            $request->session()->put($key, $exists);
-
-            if ($exists) {
-                $request->session()->put($key . '_url', $config['url'] . '?token=' . $token);
-            }
-        }
+        // Launch tokens are minted per click by ServiceLaunchController.
+        app(ServiceLaunch::class)->rememberAvailableServices($request, Auth::user());
 
         $this->clearLoginAttempts($request);
 

@@ -11,8 +11,7 @@ use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
 use Haruncpi\LaravelIdGenerator\IdGenerator;
 use Illuminate\Support\Facades\Hash;
-use Firebase\JWT\JWT;
-use DB;
+use App\Services\ServiceLaunch;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
@@ -42,56 +41,8 @@ class SocialiteController extends Controller
         //session
         $request->session()->regenerate();
 
-        $key = config('app.key');
-        $user = User::where('email', $socialUser->getEmail())->first();
-        $payload = [
-            'iss' => config('app.url'),
-            'sub' => $user->email,
-            'iat' => time(),
-            'exp' => time() + 3600 // 1 hour expiration
-        ];
-
-        $token = JWT::encode($payload, $key, 'HS256');
-
-        $exam_cek = DB::connection('second_db')
-            ->table('users')
-            ->where('email', $user->email)
-            ->first();
-        $exam = (bool)$exam_cek;
-        $request->session()->put('exam', $exam);
-        if($exam){
-            $examUrl = 'https://exam.routind.com/token-login?token='.$token;
-            $request->session()->put('exam_url', $examUrl);
-        }
-
-        $coretax_cek = DB::connection('coretax_db')
-            ->table('users')
-            ->where('email', $user->email)
-            ->first();
-        $coretax = (bool)$coretax_cek;
-        $request->session()->put('coretax', $coretax);
-
-        if($coretax){
-            $coretaxUrl = 'https://tax.routind.com/token-login?token='.$token;
-            $request->session()->put('coretax_url', $coretaxUrl);
-        }
-
-        // LMS: jika database tidak bisa diakses, login Routind tetap berjalan
-        try {
-            $lms = DB::connection('lms_db')
-                ->table('users')
-                ->where('email', $user->email)
-                ->exists();
-        } catch (Exception $e) {
-            report($e);
-            $lms = false;
-        }
-        $request->session()->put('lms', $lms);
-
-        if($lms){
-            $lmsUrl = 'https://lms.routind.com/token-login?token='.$token;
-            $request->session()->put('lms_url', $lmsUrl);
-        }
+        // Token layanan dibuat saat tombol Launch diklik (ServiceLaunchController)
+        app(ServiceLaunch::class)->rememberAvailableServices($request, $authUser);
 
         // setelah login redirect ke dashboard
         return redirect()->route('home');

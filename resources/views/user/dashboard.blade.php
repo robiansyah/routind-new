@@ -45,7 +45,7 @@
                     <!--end::Title-->
                     <!--begin::Action-->
                     <div class="m-0">
-                        <a href="{{ Session::get('coretax_url')}}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
+                        <a href="{{ route('service.launch', 'coretax') }}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
                     </div>
                     <!--begin::Action-->
                 </div>
@@ -63,7 +63,7 @@
                     <!--end::Title-->
                     <!--begin::Action-->
                     <div class="m-0">
-                        <a href="{{ Session::get('exam_url')}}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
+                        <a href="{{ route('service.launch', 'exam') }}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
                     </div>
                     <!--begin::Action-->
                 </div>
@@ -81,7 +81,7 @@
                     <!--end::Title-->
                     <!--begin::Action-->
                     <div class="m-0">
-                        <a href="{{ Session::get('lms_url')}}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
+                        <a href="{{ route('service.launch', 'lms') }}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
                     </div>
                     <!--begin::Action-->
                 </div>
