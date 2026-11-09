@@ -8,6 +8,11 @@ use App\Jobs\SendMailJob;
 
 class SendEmailController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(['auth', 'role:admin']);
+    }
+
     public function index()
     {
 

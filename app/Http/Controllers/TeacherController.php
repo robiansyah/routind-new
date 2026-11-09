@@ -111,7 +111,7 @@ class TeacherController extends Controller
 
     public function kelasChampion(Request $request, $id)
     {
-        $kelas = Kelas::findOrFail($id);
+        $kelas = $this->findClass($id);
         $kelas->champion = ($kelas->champion=='Show') ? 'Hide' : 'Show';
         $kelas->save();
 
@@ -120,7 +120,7 @@ class TeacherController extends Controller
     }
 
     public function kelasDetail($id){
-        $kelas = Kelas::with('co:id,name')->findOrFail($id);
+        $kelas = $this->accessibleClasses()->with('co:id,name')->findOrFail($id);
         $students = ClassStudent::with('student:id,name,email')->where('class_id', $id)->orderBy('nim')->get();
         $questions = Question::with('form')->withCount('assesments', 'spt')->where('class_id', $id)->get();
         $materials = Material::where('class_id', $id)->orderBy('created_at')->get();
@@ -135,7 +135,7 @@ class TeacherController extends Controller
 
     public function kelasDuplicate(Request $request, $id)
     {
-        $kelas = Kelas::findOrFail($id);
+        $kelas = $this->findClass($id);
         $new = $kelas->replicate();
         $new->name = $kelas->name." Copy";
         $new->code = $this->generateUniqueCode();
@@ -174,7 +174,7 @@ class TeacherController extends Controller
     }
 
     public function kelasCode(Request $request, $id){
-        $kelas = Kelas::findOrFail($id);
+        $kelas = $this->findClass($id);
         if(count($kelas->students)){
             $request->session()->flash('alert-danger', 'Kode Kelas tidak dapat diubah karena masih memiliki pelajar');
             return redirect()->back();
@@ -190,6 +190,7 @@ class TeacherController extends Controller
         $this->validate($request,[
             'name' => 'required',
         ]);
+        $this->ensureValidCoTeacher($request);
 
         $kelas = new Kelas;
         $kelas->name = $request->name;
@@ -203,7 +204,7 @@ class TeacherController extends Controller
     }
 
     public function kelasEdit($id){
-        $kelas = Kelas::findOrFail($id);
+        $kelas = $this->findClass($id);
 
 	    return response()->json([
 	      'data' => $kelas,
@@ -214,8 +215,9 @@ class TeacherController extends Controller
         $this->validate($request,[
             'name' => 'required',
         ]);
-        
-        $kelas = Kelas::findOrFail($id);
+        $this->ensureValidCoTeacher($request);
+
+        $kelas = $this->findClass($id);
         $kelas->name = $request->name;
         $kelas->co_id = $request->co_id;
         $kelas->save();
@@ -225,7 +227,7 @@ class TeacherController extends Controller
     }
 
     public function kelasDestroy(Request $request, $id){
-        $kelas = Kelas::withCount('students')->findOrFail($id);
+        $kelas = $this->accessibleClasses()->withCount('students')->findOrFail($id);
         if($kelas->students_count > 0){
             $request->session()->flash('alert-danger', 'Kelas tidak dapat dihapus karena sudah ada pelajar');
             return redirect()->back();
@@ -237,6 +239,8 @@ class TeacherController extends Controller
     }
 
     public function kelasStudentEnrolle($id){
+        $this->findClass($id);
+
         //get students already enrolled
         $students_enrolled = ClassStudent::where('class_id', $id)->pluck('student_id')->all();
 
@@ -255,6 +259,7 @@ class TeacherController extends Controller
         $request->validate([
             'student_id'    => 'required',
         ]);
+        $this->findClass($id);
 
         //create exam_group
         foreach($request->student_id as $student_id) {
@@ -274,7 +279,12 @@ class TeacherController extends Controller
             'id' => 'required',
         ]);
 
-        $class = ClassStudent::whereIn('id', $request->id)->with('kelas.questions')->get();
+        // Only enrolments in the user's own classes.
+        $ids = ClassStudent::whereIn('id', (array) $request->id)
+            ->whereIn('class_id', $this->accessibleClasses()->select('id'))
+            ->pluck('id');
+
+        $class = ClassStudent::whereIn('id', $ids)->with('kelas.questions')->get();
         foreach ($class as $item){
             if(count($item->kelas->questions)){
                 foreach ($item->kelas->questions as $key){
@@ -282,7 +292,7 @@ class TeacherController extends Controller
                 }
             }
         }
-        ClassStudent::whereIn('id', $request->id)->delete();
+        ClassStudent::whereIn('id', $ids)->delete();
         //redirect
         $request->session()->flash('alert-info', 'Pelajar berhasil dihapus');
         return redirect()->back();
@@ -290,6 +300,7 @@ class TeacherController extends Controller
 
     public function soalCreate($id)
     {
+        $this->findClass($id);
         $forms = AssesmentForm::all();
 
         return view('pengajar.soal.tambah', [
@@ -308,6 +319,7 @@ class TeacherController extends Controller
             'end_date' => 'required',
             'weight' => 'required',
         ]);
+        $this->findClass($id);
 
         Question::create([
             'class_id' => $id,
@@ -326,8 +338,9 @@ class TeacherController extends Controller
 
     public function soalTemplate($id)
     {
+        $this->findClass($id);
         $templates = Question::with('form:id,name')
-            ->where('class_id', '5a7c2e6b-ed6b-4314-af04-4d006f296b73')
+            ->where('class_id', self::TEMPLATE_CLASS_ID)
             ->orderBy('form_id')
             ->get();
 
@@ -339,7 +352,10 @@ class TeacherController extends Controller
 
     public function template($id)
     {
-        $data = Question::with('assesments', 'assesments.category')->findOrFail($id);
+        // Only shared templates, not other teachers' questions.
+        $data = Question::with('assesments', 'assesments.category')
+            ->where('class_id', self::TEMPLATE_CLASS_ID)
+            ->findOrFail($id);
         return response()->json([
             "status"=>"success",
             "data"=> $data,
@@ -356,7 +372,10 @@ class TeacherController extends Controller
             'weight' => 'required',
         ]);
 
-        $question = Question::with('assesments')->findOrFail($request->template_id);
+        $this->findClass($id);
+        $question = Question::with('assesments')
+            ->where('class_id', self::TEMPLATE_CLASS_ID)
+            ->findOrFail($request->template_id);
         $ins_assesment = array();
 
         $newq = $question->replicate();
@@ -389,7 +408,7 @@ class TeacherController extends Controller
     public function soalEdit($kelas_id, $id)
     {
         $forms = AssesmentForm::all();
-        $question = Question::findOrFail($id);
+        $question = $this->findQuestion($id, $kelas_id);
         return view('pengajar.soal.edit', [
             'class_id' => $kelas_id,
             'forms' => $forms,
@@ -408,7 +427,7 @@ class TeacherController extends Controller
             'weight' => 'required',
         ]);
 
-        $question = Question::findOrFail($id);
+        $question = $this->findQuestion($id, $kelas_id);
         $question->update([
             'class_id' => $kelas_id,
             'form_id' => $request->form_id,
@@ -425,8 +444,10 @@ class TeacherController extends Controller
     }
 
     public function soalDetail(Request $request, $kelas_id, $question_id){
-        $kelas = Kelas::findOrFail($kelas_id);
-        $question = Question::with('spt', 'assesments', 'assesments.category')->findOrFail($question_id);
+        $kelas = $this->findClass($kelas_id);
+        $question = Question::with('spt', 'assesments', 'assesments.category')
+            ->where('class_id', $kelas->id)
+            ->findOrFail($question_id);
 
         return view('pengajar.soal.detail', [
             'kelas' => $kelas,
@@ -436,7 +457,7 @@ class TeacherController extends Controller
 
     public function soalDestroy(Request $request, $kelas_id, $id)
     {
-        $question = Question::where('id', $id)->withCount('spt')->first();
+        $question = $this->findQuestion($id, $kelas_id)->loadCount('spt');
         if($question->spt_count > 0){
             $request->session()->flash('alert-danger', 'Soal tidak dapat dihapus karena sudah ada pelajar yg submit');
             return redirect()->route('pengajar.kelas.detail', $kelas_id);
@@ -450,7 +471,7 @@ class TeacherController extends Controller
 
     public function soalStatus(Request $request, $kelas_id, $id)
     {
-        $question = Question::findOrFail($id);
+        $question = $this->findQuestion($id, $kelas_id);
         $question->status = ($question->status=='Show') ? 'Hide' : 'Show';
         $question->save();
 
@@ -460,7 +481,7 @@ class TeacherController extends Controller
 
     public function penilaianCreate($id)
     {
-        $question = Question::findOrFail($id);
+        $question = $this->findQuestion($id);
         $categories = AssesmentCategory::where('form_id', $question->form_id)->orWhereNull('form_id')->get();
 
         return view('pengajar.penilaian.tambah', [
@@ -476,7 +497,7 @@ class TeacherController extends Controller
             'weight' => 'required',
         ]);
 
-        $question = Question::findOrFail($id);
+        $question = $this->findQuestion($id);
         $option = (!empty($request->option)) ? $request->option : null;
         if($option!=null){
             $opt = AssesmentOption::findOrFail($option);
@@ -499,9 +520,9 @@ class TeacherController extends Controller
 
     public function penilaianEdit($soal_id, $id)
     {
-        $question = Question::findOrFail($soal_id);
+        $question = $this->findQuestion($soal_id);
         $categories = AssesmentCategory::where('form_id', $question->form_id)->orWhereNull('form_id')->get();
-        $assesment = Assesment::findOrFail($id);
+        $assesment = Assesment::where('question_id', $question->id)->findOrFail($id);
 
         return view('pengajar.penilaian.edit', [
             'question' => $question,
@@ -517,7 +538,7 @@ class TeacherController extends Controller
             'weight' => 'required',
         ]);
 
-        $question = Question::findOrFail($soal_id);
+        $question = $this->findQuestion($soal_id);
         $option = (!empty($request->option)) ? $request->option : null;
         if($option!=null){
             $opt = AssesmentOption::findOrFail($option);
@@ -526,7 +547,7 @@ class TeacherController extends Controller
             $answer = $request->answer;
         }
 
-        $assesment = Assesment::findOrFail($id);
+        $assesment = Assesment::where('question_id', $question->id)->findOrFail($id);
         $assesment->update([
             'question_id' => $question->id,
             'category_id' => $request->category_id,
@@ -541,7 +562,8 @@ class TeacherController extends Controller
 
     public function penilaianDestroy(Request $request, $question_id, $id)
     {
-        Assesment::findOrFail($id)->delete();
+        $question = $this->findQuestion($question_id);
+        Assesment::where('question_id', $question->id)->findOrFail($id)->delete();
         $request->session()->flash('alert-info', 'Penilaian berhasil dihapus');
         return redirect()->back();
     }
@@ -552,7 +574,10 @@ class TeacherController extends Controller
             'id' => 'required',
         ]);
 
-        Spt::whereIn('id', $request->id)->update(array('question_id' => null, 'nilai' => null, 'second' => null));
+        // Only grades on questions in the user's own classes.
+        Spt::whereIn('id', (array) $request->id)
+            ->whereIn('question_id', Question::whereIn('class_id', $this->accessibleClasses()->select('id'))->select('id'))
+            ->update(array('question_id' => null, 'nilai' => null, 'second' => null));
         $request->session()->flash('alert-info', 'Nilai Pelajar berhasil dihapus');
         return redirect()->back();
     }
@@ -598,6 +623,7 @@ class TeacherController extends Controller
     }
 
     public function pelajarDetail($id){
+        abort_unless($this->teachesStudent($id), 404);
         $pelajar = User::findOrFail($id);
         $spt = Spt::where('user_id', $id)->orderBy('form_code', 'desc')->orderBy('year', 'desc')->orderBy('start_period', 'desc')->get();
         $invoice['keluaran'] = InvoiceOutput::where('user_id', $id)->orderBy('invoice_year', 'desc')->orderBy('invoice_period', 'desc')->orderBy('invoice_no', 'asc')->get();
@@ -621,6 +647,24 @@ class TeacherController extends Controller
     }
 
     public function pelajarDestroy(Request $request, $type, $id){
+        // Each document must belong to a student in one of the user's classes.
+        $models = [
+            'spt' => Spt::class,
+            'keluaran' => InvoiceOutput::class,
+            'masukan' => InvoiceInput::class,
+            'dok-keluaran' => OtherOutput::class,
+            'dok-masukan' => OtherInput::class,
+            'retur-keluaran' => ReturOutput::class,
+            'retur-masukan' => ReturInput::class,
+            'bupot' => Bupot::class,
+        ];
+        abort_unless(isset($models[$type]), 404);
+        $document = $models[$type]::findOrFail($id);
+        $ownerId = $type == 'bupot'
+            ? User::where('npwp', $document->npwpPemotong)->value('id')
+            : $document->user_id;
+        abort_unless($this->teachesStudent($ownerId), 404);
+
         if($type=='spt'){
             $spt = Spt::findOrFail($id);
             if($spt->form_code=='PPH21'){
@@ -652,7 +696,7 @@ class TeacherController extends Controller
 
     public function pelajarSpt(Request $request, $spt_id){
         $spt = Spt::where([['id', $spt_id]])->first();
-        if($spt){
+        if($spt && $this->teachesStudent($spt->user_id)){
             if($spt->form_code=='PPH21'){
                 $tidak = PphDoc::where('spt_id', $spt_id)
                     ->whereHas('object', function ($query){
@@ -687,6 +731,7 @@ class TeacherController extends Controller
 
     public function pelajarEform(Request $request, $id){
         $spt = Spt::findOrFail($id);
+        abort_unless($this->teachesStudent($spt->user_id), 404);
         if($spt->form_code=='1771'){
             $induk = Spt1771induk::where([['spt_id', $id]])->first();
             if($request->type=='submit'){
@@ -851,7 +896,7 @@ class TeacherController extends Controller
 
     public function pelajarNilai(Request $request, $spt_id){
         $spt = Spt::where([['id', $spt_id]])->first();
-        if($spt){
+        if($spt && $this->teachesStudent($spt->user_id)){
             $spt->nilai = $request->nilai;
             $spt->jenis_nilai = $request->jenis;
             $spt->save();
@@ -864,7 +909,7 @@ class TeacherController extends Controller
     }
 
     public function sertifikat($id){
-        $kelas = Kelas::findOrFail($id);
+        $kelas = $this->findClass($id);
         $students = ClassStudent::with('student')->where('class_id', $id)->orderBy('nim')->get();
 
         return view('pengajar.sertifikat_index', [
@@ -874,7 +919,7 @@ class TeacherController extends Controller
     }
 
     public function sertifikatCreate($id){
-        $kelas = Kelas::findOrFail($id);
+        $kelas = $this->findClass($id);
         $students = ClassStudent::with('student', 'student.certificates')->where('class_id', $id)->orderBy('nim')->get();
         $sign = CertificateSign::all();
         $design = CertificateDesign::all();
@@ -896,6 +941,11 @@ class TeacherController extends Controller
             'sign_id' => 'required',
             'date' => 'required',
         ]);
+        $this->findClass($id);
+
+        // Certificates only for students enrolled in this class.
+        $enrolled = ClassStudent::where('class_id', $id)->pluck('student_id')->map(fn ($v) => (string) $v)->all();
+        abort_if(array_diff(array_map('strval', (array) $request->student_id), $enrolled), 422, 'Pelajar tidak terdaftar di kelas ini.');
 
         //create exam_group
         $year = date('Y');
@@ -923,6 +973,67 @@ class TeacherController extends Controller
         return redirect()->route('pengajar.certificate', $id);
     }
 
+    /** The class whose questions every teacher may copy as templates. */
+    private const TEMPLATE_CLASS_ID = '5a7c2e6b-ed6b-4314-af04-4d006f296b73';
+
+    /**
+     * Classes the signed-in user may work with: their own as teacher or co-teacher,
+     * and for prodi, the classes of teachers in the same institution.
+     */
+    private function accessibleClasses()
+    {
+        $user = auth()->user();
+
+        return Kelas::query()->where(function ($query) use ($user) {
+            $query->where('user_id', $user->id)->orWhere('co_id', $user->id);
+
+            if ($user->hasRole('prodi') && ! empty($user->institution_code)) {
+                $query->orWhereIn('user_id', User::where('institution_code', $user->institution_code)
+                    ->whereHas('roles', fn ($roles) => $roles->where('roles.name', 'pengajar'))
+                    ->select('id'));
+            }
+        });
+    }
+
+    /** A class the user may work with. 404 otherwise, so other classes' IDs reveal nothing. */
+    private function findClass($id): Kelas
+    {
+        return $this->accessibleClasses()->findOrFail($id);
+    }
+
+    /** A question in one of the user's classes (and in $classId, when given). */
+    private function findQuestion($id, $classId = null): Question
+    {
+        $question = Question::findOrFail($id);
+        $this->findClass($question->class_id);
+        abort_if($classId !== null && (string) $question->class_id !== (string) $classId, 404);
+
+        return $question;
+    }
+
+    /** Whether the student is enrolled in one of the user's classes. */
+    private function teachesStudent($studentId): bool
+    {
+        return $studentId !== null && ClassStudent::where('student_id', $studentId)
+            ->whereIn('class_id', $this->accessibleClasses()->select('id'))
+            ->exists();
+    }
+
+    /** Only someone who teaches the co-teacher's institution can pick them. */
+    private function ensureValidCoTeacher(Request $request): void
+    {
+        if (! $request->filled('co_id')) {
+            return;
+        }
+
+        $valid = User::whereKey($request->co_id)
+            ->where('institution_code', auth()->user()->institution_code)
+            ->whereHas('roles', fn ($roles) => $roles->where('roles.name', 'co-pengajar'))
+            ->exists();
+
+        abort_unless($valid, 422, 'Co-pengajar tidak valid.');
+    }
+
     public function masukanStore(Request $request)
     {
 //        dd($request->class_id);
@@ -941,7 +1052,10 @@ class TeacherController extends Controller
             'ppnbm' => 'required',
         ]);
 
-        $students = ClassStudent::with('student:id,name,email')->whereIn('class_id', $request->class_id)->orderBy('nim')->get();
+        $students = ClassStudent::with('student:id,name,email')
+            ->whereIn('class_id', (array) $request->class_id)
+            ->whereIn('class_id', $this->accessibleClasses()->select('id'))
+            ->orderBy('nim')->get();
         $code = substr($request->invoice_no,0,5);
         $invoice_no = substr($request->invoice_no,-15);
         DB::beginTransaction();

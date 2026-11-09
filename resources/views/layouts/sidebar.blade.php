@@ -60,47 +60,6 @@
                         </div>
                         <!--end:Menu item-->
                         <!--begin:Menu item-->
-                        <div data-kt-menu-trigger="click" class="menu-item {!! (Request::segment(1) == 'paket' || Request::segment(1) == 'invoice') ? 'here show' : '' !!} menu-accordion">
-                            <!--begin:Menu link-->
-                            <span class="menu-link">
-                                <span class="menu-bullet">
-                                    <span class="bullet bullet-dot"></span>
-                                </span>
-                                <span class="menu-title">Paket</span>
-                                <span class="menu-arrow"></span>
-                            </span>
-                            <!--end:Menu link-->
-                            <!--begin:Menu sub-->
-                            <div class="menu-sub menu-sub-accordion menu-active-bg">
-                                <!--begin:Menu item-->
-                                <div class="menu-item">
-                                    <!--begin:Menu link-->
-                                    <a class="menu-link {!! (Request::segment(1) == 'paket') ? 'active' : '' !!}" href="{{ route('pelajar.paket') }}">
-                                        <span class="menu-bullet">
-                                            <span class="bullet bullet-dot"></span>
-                                        </span>
-                                        <span class="menu-title">Pembelian</span>
-                                    </a>
-                                    <!--end:Menu link-->
-                                </div>
-                                <!--end:Menu item-->
-                                <!--begin:Menu item-->
-                                <div class="menu-item">
-                                    <!--begin:Menu link-->
-                                    <a class="menu-link {!! (Request::segment(1) == 'invoice') ? 'active' : '' !!}" href="{{ route('pelajar.invoice') }}">
-                                        <span class="menu-bullet">
-                                            <span class="bullet bullet-dot"></span>
-                                        </span>
-                                        <span class="menu-title">Transaksi</span>
-                                    </a>
-                                    <!--end:Menu link-->
-                                </div>
-                                <!--end:Menu item-->
-                            </div>
-                            <!--end:Menu sub-->
-                        </div>
-                        <!--end:Menu item-->
-                        <!--begin:Menu item-->
                         <div class="menu-item">
                             <!--begin:Menu link-->
                             <a class="menu-link {!! (Request::segment(1) == 'pengaturan') ? 'active' : '' !!}" href="{{ route('pelajar.setting') }}">
@@ -649,7 +608,12 @@
                 @endif
                 @if(Session::get('exam'))
                 <div class="menu-item px-5">
-                    <a href="{{ Session::get('exam_url')}}" target="_blank" class="menu-link px-5">Exam</a>
+                    <a href="{{ route('service.launch', 'exam') }}" target="_blank" class="menu-link px-5">Exam</a>
+                </div>
+                @endif
+                @if(Session::get('lms'))
+                <div class="menu-item px-5">
+                    <a href="{{ route('service.launch', 'lms') }}" target="_blank" class="menu-link px-5">LMS</a>
                 </div>
                 @endif
                 <!--end::Menu item-->
@@ -1171,47 +1135,6 @@
                             <span class="menu-title">Profil</span>
                         </a>
                         <!--end:Menu link-->
-                    </div>
-                    <!--end:Menu item-->
-                    <!--begin:Menu item-->
-                    <div data-kt-menu-trigger="click" class="menu-item {!! (Request::segment(1) == 'paket' || Request::segment(1) == 'invoice') ? 'here show' : '' !!} menu-accordion">
-                        <!--begin:Menu link-->
-                        <span class="menu-link">
-                            <span class="menu-bullet">
-                                <span class="bullet bullet-dot"></span>
-                            </span>
-                            <span class="menu-title">Paket</span>
-                            <span class="menu-arrow"></span>
-                        </span>
-                        <!--end:Menu link-->
-                        <!--begin:Menu sub-->
-                        <div class="menu-sub menu-sub-accordion menu-active-bg">
-                            <!--begin:Menu item-->
-                            <div class="menu-item">
-                                <!--begin:Menu link-->
-                                <a class="menu-link {!! (Request::segment(1) == 'paket') ? 'active' : '' !!}" href="{{ route('pelajar.paket') }}">
-                                    <span class="menu-bullet">
-                                        <span class="bullet bullet-dot"></span>
-                                    </span>
-                                    <span class="menu-title">Pembelian</span>
-                                </a>
-                                <!--end:Menu link-->
-                            </div>
-                            <!--end:Menu item-->
-                            <!--begin:Menu item-->
-                            <div class="menu-item">
-                                <!--begin:Menu link-->
-                                <a class="menu-link {!! (Request::segment(1) == 'invoice') ? 'active' : '' !!}" href="{{ route('pelajar.invoice') }}">
-                                    <span class="menu-bullet">
-                                        <span class="bullet bullet-dot"></span>
-                                    </span>
-                                    <span class="menu-title">Transaksi</span>
-                                </a>
-                                <!--end:Menu link-->
-                            </div>
-                            <!--end:Menu item-->
-                        </div>
-                        <!--end:Menu sub-->
                     </div>
                     <!--end:Menu item-->
                     <!--begin:Menu item-->

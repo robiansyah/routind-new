@@ -19,6 +19,7 @@ use DataTables;
 use DB;
 use Haruncpi\LaravelIdGenerator\IdGenerator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\PenggunaImport;
 
@@ -77,7 +78,9 @@ class AdminController extends Controller
                     return view('admin.pengguna_button', ['user' => $row]);
                 })
                 ->addColumn('status', function ($row){
-                    $status = ($row->email_verified_at != '') ? '<span class="badge bg-success">Email Terverifikasi</span>' : '<a href="'.route('admin.pengguna.email', ['id'=>$row->id]).'" onclick="return confirm(\'Apakah anda yakin akan memverifikasi email ini?\')" class="badge bg-danger">Email Belum Terverifikasi</a>';
+                    $status = ($row->email_verified_at != '') ? '<span class="badge bg-success">Email Terverifikasi</span>' : '<form action="'.route('admin.pengguna.email', ['id'=>$row->id]).'" method="POST" class="d-inline" onsubmit="return confirm(\'Apakah anda yakin akan memverifikasi email ini?\')">'
+                        .csrf_field()
+                        .'<button type="submit" class="badge bg-danger border-0">Email Belum Terverifikasi</button></form>';
                     $status .= '<br>'.\Carbon\Carbon::parse($row->created_at)->format('j M Y, H:i');
                     return $status;
                 })
@@ -241,10 +244,12 @@ class AdminController extends Controller
     public function penggunaPassword(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        $user->password = Hash::make($user->mobile_phone);
+        // A random password, not the phone number: phone numbers are easy to find out.
+        $password = Str::password(10, symbols: false);
+        $user->password = Hash::make($password);
         $user->save();
 
-        $request->session()->flash('alert-info', 'Password berhasil direset');
+        $request->session()->flash('alert-info', 'Password '.$user->email.' berhasil direset. Password baru: '.$password.' (sampaikan ke pengguna, hanya ditampilkan sekali)');
         return redirect()->back();
     }
 

@@ -18,6 +18,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/callback', [\App\Http\Controllers\Api\CallbackController::class, 'index'])->name('callback');
 Route::post('/callback/doku', [\App\Http\Controllers\Api\CallbackController::class, 'callbackDoku'])->name('callback.doku');
-Route::get('test', [\App\Http\Controllers\Api\CallbackController::class, 'test'])->name('test');

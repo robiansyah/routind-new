@@ -45,7 +45,7 @@
                     <!--end::Title-->
                     <!--begin::Action-->
                     <div class="m-0">
-                        <a href="{{ Session::get('coretax_url')}}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
+                        <a href="{{ route('service.launch', 'coretax') }}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
                     </div>
                     <!--begin::Action-->
                 </div>
@@ -63,7 +63,25 @@
                     <!--end::Title-->
                     <!--begin::Action-->
                     <div class="m-0">
-                        <a href="{{ Session::get('exam_url')}}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
+                        <a href="{{ route('service.launch', 'exam') }}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
+                    </div>
+                    <!--begin::Action-->
+                </div>
+                <!--end::Body-->
+            </div>
+        </div>
+        @endif
+        @if(Session::get('lms'))
+        <div class="col-xl-4">
+            <div class="card h-175px bgi-no-repeat bgi-size-contain card-xl-stretch mb-5 mb-xl-8" style="background-color: #31316A; background-position: right; background-image:url('/disc/assets/media/svg/misc/hijau-inn.png')">
+                <!--begin::Body-->
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <!--begin::Title-->
+                    <h2 class="text-white fw-bold fs-1">LMS<br>Modul &amp; Materi</h2>
+                    <!--end::Title-->
+                    <!--begin::Action-->
+                    <div class="m-0">
+                        <a href="{{ route('service.launch', 'lms') }}" target="_blank" class="btn btn-danger fw-semibold px-6 py-3">Launch</a>
                     </div>
                     <!--begin::Action-->
                 </div>

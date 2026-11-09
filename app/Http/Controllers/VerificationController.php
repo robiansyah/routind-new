@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use NextApps\VerificationCode\VerificationCode;
+use Wotz\VerificationCode\VerificationCode;
 use App\Models\Spt;
 use App\Models\User;
 use App\Notifications\EmailNotification;

@@ -56,10 +56,10 @@ return [
     | a verification code.
     |
     | It should implement the interface:
-    |   - \NextApps\VerificationCode\Notifications\VerificationCodeCreatedInterface
+    |   - \Wotz\VerificationCode\Notifications\VerificationCodeCreatedInterface
     |
     */
-    'notification' => \NextApps\VerificationCode\Notifications\VerificationCodeCreated::class,
+    'notification' => \Wotz\VerificationCode\Notifications\VerificationCodeCreated::class,
 
     /*
     |--------------------------------------------------------------------------

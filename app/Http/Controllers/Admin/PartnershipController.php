@@ -45,12 +45,12 @@ class PartnershipController extends Controller
     {
         $this->validate($request,[
             'name' => 'required',
-            'logo' => 'required',
+            'logo' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
         ]);
 
         // menyimpan data file yang diupload
         $logo = $request->file('logo');
-        $logo_name = time().'.'.$logo->getClientOriginalExtension();
+        $logo_name = time().'.'.$logo->guessExtension();
         $folder = 'img';
         $logo->move($folder,$logo_name);
 
@@ -89,6 +89,7 @@ class PartnershipController extends Controller
     public function update(Request $request, $id)
     {
         $this->validate($request,[
+            'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'name' => 'required',
 //            'logo' => 'required',
         ]);
@@ -97,7 +98,7 @@ class PartnershipController extends Controller
         if(!empty($request->logo)){
             // menyimpan data file yang diupload
             $logo = $request->file('logo');
-            $logo_name = time().'.'.$logo->getClientOriginalExtension();
+            $logo_name = time().'.'.$logo->guessExtension();
             $folder = 'img';
             $logo->move($folder,$logo_name);
 

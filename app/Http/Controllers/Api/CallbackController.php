@@ -3,171 +3,102 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-
-//import model Donation
 use App\Models\AcademyPurchase;
-use App\Models\Purchase;
-use App\Models\User;
-
-//import Xendit
-use Xendit\Configuration;
-use Xendit\Invoice\InvoiceApi;
-
-//import Http Request
-use Illuminate\Http\Request;
-
-//Wablas
+use App\Services\DokuService;
 use Fonnte;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class CallbackController extends Controller
 {
     /**
-     * __construct
+     * DOKU Checkout payment notification.
      *
-     * @return void
+     * Only requests signed with our DOKU secret key are trusted, and an invoice is
+     * marked paid only once, only while it is still UNPAID, and only when the paid
+     * amount matches what we billed.
      */
-    function __construct()
+    public function callbackDoku(Request $request, DokuService $doku): JsonResponse
     {
-        Configuration::setXenditKey(config('xendit.API_KEY'));
-    }
+        if (! $doku->verifyCallback($request)) {
+            Log::warning('DOKU callback rejected: invalid signature', ['ip' => $request->ip()]);
 
-    public function index(Request $request)
-    {
-        //init invoice api from xendit
-        $apiInstance = new InvoiceApi();
-
-        //get invoice by id
-        $getInvoice  = $apiInstance->getInvoiceById($request->id);
-
-        // Get data donation by external id
-        $purchase = AcademyPurchase::where([['transaction_code', $request->external_id]])->first();
-        if(!$purchase){
-            $purchase = Purchase::where([['transaction_code', $request->external_id]])->first();
+            return response()->json(['message' => 'Invalid signature'], 401);
         }
 
-        // Update status payment on database
-        switch ($getInvoice['status']) {
-            case 'PAID':
-            case 'SETTLED':
+        $invoiceCode = (string) data_get($request->all(), 'order.invoice_number');
+        $amount = data_get($request->all(), 'order.amount');
+        $status = strtoupper((string) data_get($request->all(), 'transaction.status'));
 
-                $purchase->update(['status' => 'PAID']);
-                if(substr($purchase->invoice_code,0,3)=='INV') {
-                    $days = ($purchase->paket == "premium") ? "+30 days" : "+180 days";
-                    $user = User::findOrFail($purchase->user_id);
-                    $user->update([
-                        'paket' => $purchase->paket,
-                        'end_date' => date("Y-m-d", strtotime($days)),
+        $purchase = AcademyPurchase::where('invoice_code', $invoiceCode)->first();
+
+        if (! $purchase) {
+            Log::warning('DOKU callback for unknown invoice', ['invoice' => $invoiceCode]);
+
+            return response()->json(['message' => 'Invoice not found'], 404);
+        }
+
+        if ($purchase->status !== 'UNPAID') {
+            return response()->json(['message' => 'Already processed']);
+        }
+
+        switch ($status) {
+            case 'SUCCESS':
+            case 'PAID':
+            case 'COMPLETED':
+                if ((int) round((float) $amount) !== (int) round((float) $purchase->amount)) {
+                    Log::warning('DOKU callback amount mismatch', [
+                        'invoice' => $invoiceCode,
+                        'billed' => $purchase->amount,
+                        'paid' => $amount,
                     ]);
 
-                    $sub = substr($user->mobile_phone, 0, 2);
-                    $phone = ($sub=='+6' || $sub=='62' || $sub=='08') ? $user->mobile_phone : '62'.$user->mobile_phone;
-                    $messages = "[pesan otomatis]
-Pembelian Anda Berhasil
-
-Hai Kak ".$user->name."
-
-Selamat! Kami senang untuk memberitahu Anda bahwa pembelian Anda telah berhasil diverifikasi.
-
-Silahkan masuk ke akun anda untuk menikmati fitur-fitur yang tersedia dalam paket tersebut.";
-                    Fonnte::sendMessage($phone, $messages);
-
-                }else{
-                    //wa
-                    $sub = substr($purchase->mobile_phone, 0, 2);
-                    $phone = ($sub=='+6' || $sub=='62' || $sub=='08') ? $purchase->mobile_phone : '62'.$purchase->mobile_phone;
-                    $messages = "[pesan otomatis]
-Pembelian Anda Berhasil
-
-Hai Kak ".$purchase->name."
-
-Selamat! Kami senang untuk memberitahu Anda bahwa pembelian Anda pada course ".$purchase->batch->event->title." telah berhasil diverifikasi.
-
-Silakan save no ini terlebih dahulu agar link dapat diakses, kemudian klik link berikut ini untuk bergabung dengan grup WA
-
-".$purchase->batch->link_group;
-                    Fonnte::sendMessage($phone, $messages);
+                    return response()->json(['message' => 'Amount mismatch'], 422);
                 }
 
+                // Atomic, so a notification DOKU sends twice cannot pay (and notify) twice.
+                if ($this->moveFromUnpaid($purchase, 'PAID')) {
+                    $this->notifyPaid($purchase);
+                }
                 break;
 
-            case 'EXPIRED':
             case 'FAILED':
-                $purchase->update(['status' => 'FAILED']);
+            case 'EXPIRED':
+                $this->moveFromUnpaid($purchase, 'FAILED');
                 break;
 
             default:
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unrecognized payment status',
-                ]);
+                Log::info('DOKU callback with unhandled status', ['invoice' => $invoiceCode, 'status' => $status]);
+
+                return response()->json(['message' => 'Unrecognized payment status']);
         }
 
-        //return json
+        Log::info("DOKU payment updated for invoice: {$invoiceCode}", ['status' => $status]);
+
         return response()->json(['data' => 'Success']);
     }
 
-    public function callbackDoku(Request $request)
+    /**
+     * Change the status only if the purchase is still UNPAID. Returns whether it changed.
+     */
+    private function moveFromUnpaid(AcademyPurchase $purchase, string $status): bool
     {
-        try{
-            $invoiceCode =
-                $request->input('TRANSIDMERCHANT')
-                ?? $request->input('invoice_number')
-                ?? data_get($request->all(), 'order.invoice_number')
-                ?? data_get($request->all(), 'response.order.invoice_number');
+        return AcademyPurchase::whereKey($purchase->getKey())
+            ->where('status', 'UNPAID')
+            ->update(['status' => $status]) === 1;
+    }
 
-            $statusRaw =
-                $request->input('RESULTMSG')
-                ?? $request->input('status')
-                ?? data_get($request->all(), 'transaction.status');
-            $status = strtoupper($statusRaw ?? '');
-
-            $amount =
-                $request->input('AMOUNT')
-                ?? data_get($request->all(), 'order.amount')
-                ?? data_get($request->all(), 'transaction.amount');
-
-            $channel =
-                $request->input('PAYMENTCHANNEL')
-                ?? data_get($request->all(), 'payment.channel')
-                ?? data_get($request->all(), 'transaction.payment_method.code')
-                ?? data_get($request->all(), 'channel.id')
-                ?? 'DOKU';
-
-            $purchase = AcademyPurchase::where([['invoice_code', $invoiceCode]])->first();
-            if(!$purchase){
-                $purchase = Purchase::where([['invoice_code', $invoiceCode]])->first();
-            }
-            switch ($status) {
-                case 'PAID':
-                case 'SUCCESS';
-                case 'COMPLETED';
-                $purchase->update(['status' => 'PAID']);
-                if(substr($purchase->invoice_code,0,3)=='INV') {
-                    $days = ($purchase->paket == "premium") ? "+30 days" : "+180 days";
-                    $user = User::findOrFail($purchase->user_id);
-                    $user->update([
-                        'paket' => $purchase->paket,
-                        'end_date' => date("Y-m-d", strtotime($days)),
-                    ]);
-
-                    $sub = substr($user->mobile_phone, 0, 2);
-                    $phone = ($sub=='+6' || $sub=='62' || $sub=='08') ? $user->mobile_phone : '62'.$user->mobile_phone;
-                    $messages = "[pesan otomatis]
-Pembelian Anda Berhasil
-
-Hai Kak ".$user->name."
-
-Selamat! Kami senang untuk memberitahu Anda bahwa pembelian Anda telah berhasil diverifikasi.
-
-Silahkan masuk ke akun anda untuk menikmati fitur-fitur yang tersedia dalam paket tersebut.";
-                    Fonnte::sendMessage($phone, $messages);
-
-                }else{
-                    //wa
-                    $sub = substr($purchase->mobile_phone, 0, 2);
-                    $phone = ($sub=='+6' || $sub=='62' || $sub=='08') ? $purchase->mobile_phone : '62'.$purchase->mobile_phone;
-                    $messages = "[pesan otomatis]
+    /**
+     * WhatsApp the buyer the course group link. A failed message must not fail the payment.
+     */
+    private function notifyPaid(AcademyPurchase $purchase): void
+    {
+        try {
+            $sub = substr($purchase->mobile_phone, 0, 2);
+            $phone = ($sub == '+6' || $sub == '62' || $sub == '08') ? $purchase->mobile_phone : '62'.$purchase->mobile_phone;
+            $messages = "[pesan otomatis]
 Pembelian Anda Berhasil
 
 Hai Kak ".$purchase->name."
@@ -177,34 +108,9 @@ Selamat! Kami senang untuk memberitahu Anda bahwa pembelian Anda pada course ".$
 Silakan save no ini terlebih dahulu agar link dapat diakses, kemudian klik link berikut ini untuk bergabung dengan grup WA
 
 ".$purchase->batch->link_group;
-                    Fonnte::sendMessage($phone, $messages);
-                }
-
-                break;
-
-                case 'EXPIRED':
-                case 'FAILED':
-                    $purchase->update(['status' => 'FAILED']);
-                    break;
-
-                default:
-                    Log::info("Unrecognized payment status");
-                    return Response::json([
-                        'success' => false,
-                        'message' => 'Unrecognized payment status',
-                    ]);
-            }
-
-            Log::info("Payment updated for Invoice: $invoiceCode");
-            //return json
-            return response()->json(['data' => 'Success']);
-
-        }catch (\Exception $e){
-            Log::error('DOKU Callback Error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response('ERROR', 500);
+            Fonnte::sendMessage($phone, $messages);
+        } catch (Throwable $e) {
+            report($e);
         }
     }
 }

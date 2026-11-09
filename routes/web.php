@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Auth\ServiceLaunchController;
+use App\Services\ServiceLaunch;
 use App\Http\Controllers\CaptchaServiceController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SptController;
@@ -14,7 +16,6 @@ use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\FakturController;
 use App\Http\Controllers\PPh21Controller;
-use App\Http\Controllers\TripayCallbackController;
 use App\Http\Controllers\RuangKelasController;
 use App\Http\Controllers\AcademyController;
 use App\Http\Controllers\PrintController;
@@ -68,19 +69,14 @@ Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialiteCont
 Route::get('/reload-captcha', [CaptchaServiceController::class, 'reloadCaptcha'])->name('reload');
 
 Route::get('/approval', [HomeController::class, 'approval'])->name('approval');
-Route::post('/callback', [TripayCallbackController::class, 'handle']);
 
 Route::get('/academy', [AcademyController::class, 'index'])->name('academy');
 Route::get('/events/{category?}', [AcademyController::class, 'event'])->name('event');
 Route::get('/events/{slug}/detail', [AcademyController::class, 'eventNew'])->name('event.show');
 Route::get('/events/{slug}/new', [AcademyController::class, 'eventNew'])->name('event.new');
-Route::get('/events/{slug}/checkout', [AcademyController::class, 'eventCheckout'])->name('event.checkout');
-//Route::get('/events/{id}/payment', [AcademyController::class, 'eventCheckoutId'])->name('event.payment.id');
 Route::get('/events/{id}/payment', [AcademyController::class, 'eventCheckoutDoku'])->name('event.payment.id');
 Route::post('/events/payment', [AcademyController::class, 'eventCheckoutNew'])->name('event.payment');
 Route::post('/discount', [AcademyController::class, 'discount'])->name('event.discount');
-Route::post('/cost', [AcademyController::class, 'cost'])->name('event.cost');
-//Route::post('/checkout', [AcademyController::class, 'checkout'])->name('event.checkout.store');
 Route::post('/checkout', [AcademyController::class, 'checkoutDoku'])->name('event.checkout.store');
 Route::get('/order', [AcademyController::class, 'order'])->name('order.index');
 Route::post('/order', [AcademyController::class, 'orderCheck'])->name('order.check');
@@ -94,18 +90,20 @@ Route::get('/coursecertificate/{code}', [AcademyController::class, 'certificate'
 Route::get('/brevetcertificate/{code}', [PrintController::class, 'brevet'])->name('brevet.certificate');
 Route::get('/brevetblank/{code}', [PrintController::class, 'brevet_blank'])->name('blank.certificate');
 
-Route::get('/xendit', [AcademyController::class, 'xendit'])->name('xendit');
 Route::get('/alumni', [AcademyController::class, 'alumni'])->name('alumni');
 
 Route::get('/terms', [AcademyController::class, 'terms'])->name('terms');
 
-Route::post('/coXendit', [AcademyController::class, 'coXendit'])->name('coXendit');
 Route::get('/doku/callback', [AcademyController::class, 'dokuReturn'])->name('doku.callback.web');
 
 //Route::any('{catchall}', [App\Http\Controllers\PageController::class, 'notfound'])->where('catchall', '.*');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
+    Route::get('/launch/{service}', ServiceLaunchController::class)
+        ->whereIn('service', array_keys(ServiceLaunch::SERVICES))
+        ->middleware(['verified', 'throttle:30,1'])
+        ->name('service.launch');
     Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
     Route::get('/informasi', [UserController::class, 'index'])->name('pelajar.index');
     Route::get('/profil', [UserController::class, 'profile'])->name('pelajar.profil');
@@ -115,15 +113,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pengaturan', [UserController::class, 'setting'])->name('pelajar.setting');
     Route::get('/pengaturan/kelas', [UserController::class, 'kelas'])->name('pelajar.setting.kelas');
     Route::post('/pengaturan/{type}', [UserController::class, 'updateSetting'])->name('pelajar.setting.update');
-    Route::get('/paket', [UserController::class, 'paket'])->name('pelajar.paket');
-    Route::get('/paket/{type}/checkout', [UserController::class, 'paketCheckout'])->name('pelajar.paket.checkout');
-    Route::post('/paket/checkout', [UserController::class, 'checkout'])->name('pelajar.checkout');
-    Route::post('/paket/discount', [UserController::class, 'discount'])->name('pelajar.discount');
-    Route::post('/paket/cost', [UserController::class, 'cost'])->name('pelajar.cost');
 
-    Route::get('/invoice', [UserController::class, 'invoice'])->name('pelajar.invoice');
-    Route::get('/invoice/{code}', [UserController::class, 'invoiceDetail'])->name('pelajar.invoice.detail');
-    Route::get('/invoice/{code}/batal', [UserController::class, 'invoiceCancel'])->name('pelajar.invoice.cancel');
     Route::get('/bayar', [UserController::class, 'pay'])->name('pelajar.bayar');
     Route::get('/lapor', [UserController::class, 'report'])->name('pelajar.lapor');
     Route::get('/pralapor', [UserController::class, 'praReport'])->name('pelajar.pralapor');
@@ -161,6 +151,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/efile/{type}/{spt?}', [SptController::class, 'efile'])->name('pelajar.spt.efile');
     Route::post('/spt/dashboard/{type}', [SptController::class, 'dashboard'])->name('pelajar.spt.dashboard');
 
+    Route::get('/eform/{spt}/berkas/{field}', [\App\Http\Controllers\EformFileController::class, 'show'])->name('eform.file');
     Route::get('/eform', [EformController::class, 'index'])->name('pelajar.eform.index');
     Route::get('/eform/arsip', [EformController::class, 'index'])->name('pelajar.eform.arsip');
     Route::get('/eform/buat', [EformController::class, 'create'])->name('pelajar.eform.buat');
@@ -366,12 +357,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/pengguna', [AdminController::class, 'penggunaStore'])->name('admin.pengguna.store');
     Route::get('/admin/pengguna/{id}/edit', [AdminController::class, 'penggunaEdit'])->name('admin.pengguna.edit');
     Route::put('/admin/pengguna/{id}', [AdminController::class, 'penggunaUpdate'])->name('admin.pengguna.update');
-    Route::get('/admin/pengguna/{id}/paket', [AdminController::class, 'penggunaPaket'])->name('admin.pengguna.paket');
-    Route::get('/admin/pengguna/{id}/email', [AdminController::class, 'penggunaEmail'])->name('admin.pengguna.email');
-    Route::get('/admin/pengguna/{id}/password', [AdminController::class, 'penggunaPassword'])->name('admin.pengguna.password');
+    Route::post('/admin/pengguna/{id}/paket', [AdminController::class, 'penggunaPaket'])->name('admin.pengguna.paket');
+    Route::post('/admin/pengguna/{id}/email', [AdminController::class, 'penggunaEmail'])->name('admin.pengguna.email');
+    Route::post('/admin/pengguna/{id}/password', [AdminController::class, 'penggunaPassword'])->name('admin.pengguna.password');
     Route::delete('/admin/pengguna/{id}/destroy', [AdminController::class, 'penggunaDestroy'])->name('admin.pengguna.destroy');
     Route::post('/admin/pengguna/import', [AdminController::class, 'penggunaImport'])->name('admin.pengguna.import');
-    Route::get('/admin/approved/{id}', [AdminController::class, 'approved'])->name('admin.approved');
+    Route::post('/admin/approved/{id}', [AdminController::class, 'approved'])->name('admin.approved');
     Route::get('/admin/transaksi', [AdminController::class, 'transaction'])->name('admin.transaction');
     Route::get('/admin/registrasi', [AdminController::class, 'registration'])->name('admin.registration');
     Route::get('/admin/log', [AdminController::class, 'log'])->name('admin.log');
@@ -423,7 +414,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/prodi', [ProdiController::class, 'index'])->name('prodi.index');
     Route::get('/prodi/pengguna/{type}', [ProdiController::class, 'pengguna'])->name('prodi.pengguna');
-    Route::get('/prodi/pengguna/{id}/password', [ProdiController::class, 'penggunaPassword'])->name('prodi.pengguna.password');
+    Route::post('/prodi/pengguna/{id}/password', [ProdiController::class, 'penggunaPassword'])->name('prodi.pengguna.password');
     Route::get('/prodi/kelas', [ProdiController::class, 'kelas'])->name('prodi.kelas');
 
     Route::get('/afiliasi', [AffiliateController::class, 'index'])->name('affiliate.index');
