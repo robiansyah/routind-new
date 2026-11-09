@@ -354,7 +354,7 @@ class AcademyController extends Controller
             $pdf = Pdf::loadview('print.certificate', [
                 'data' => $certificate,
             ])->setPaper('a4', 'landscape');
-            return $pdf->download('sertifikat-'.$name.'-'.$certificate->code.'.pdf');
+            return $pdf->download(str_replace(['/', '\\'], '-', 'sertifikat-'.$name.'-'.$certificate->code.'.pdf'));
         }else{
             $request->session()->flash('alert-danger', 'Sertifikat Tidak Ditemukan');
             return redirect()->back();
