@@ -149,7 +149,8 @@ class InvoiceController extends Controller
         $pdf = Pdf::loadview('admin.invoice.print', [
             'invoice' => $invoice,
         ])->setPaper('a4', 'potrait');
-        return $pdf->download('Invoice_'.$invoice->no.'.pdf');
+        // Invoice numbers like "INV-DG-1126/1028" contain "/", which a download filename cannot.
+        return $pdf->download('Invoice_'.str_replace(['/', '\\'], '-', $invoice->no).'.pdf');
     }
 
     public function status(Request $request, $id)

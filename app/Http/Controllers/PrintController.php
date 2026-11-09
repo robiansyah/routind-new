@@ -22,7 +22,7 @@ class PrintController extends Controller
             $pdf = Pdf::loadview('print.certificate', [
                 'data' => $certificate,
             ])->setPaper('a4', 'landscape');
-            return $pdf->download('sertifikat-'.$name.'-'.$certificate->code.'.pdf');
+            return $pdf->download(str_replace(['/', '\\'], '-', 'sertifikat-'.$name.'-'.$certificate->code.'.pdf'));
         }else{
             $request->session()->flash('alert-danger', 'Sertifikat Tidak Ditemukan');
             return redirect()->back();
@@ -38,7 +38,7 @@ class PrintController extends Controller
                 'data' => $certificate,
                 'sign' => $sign
             ])->setPaper('a4', 'landscape')->set_option("dpi", 150);
-            return $pdf->download($certificate->user->name.'-Brevet AB.pdf');
+            return $pdf->download(str_replace(['/', '\\'], '-', $certificate->user->name.'-Brevet AB.pdf'));
         }else{
             $request->session()->flash('alert-danger', 'Sertifikat Tidak Ditemukan');
             return redirect()->back();
@@ -55,7 +55,7 @@ class PrintController extends Controller
                 'data' => $certificate,
                 'sign' => $sign
             ])->setPaper('a4', 'landscape')->set_option("dpi", 150);
-            return $pdf->download('sertifikat-'.$certificate->user->name.'-'.$certificate->code.'.pdf');
+            return $pdf->download(str_replace(['/', '\\'], '-', 'sertifikat-'.$certificate->user->name.'-'.$certificate->code.'.pdf'));
         }else{
             $request->session()->flash('alert-danger', 'Sertifikat Tidak Ditemukan');
             return redirect()->back();
